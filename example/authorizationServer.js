@@ -21,7 +21,7 @@ app.post("/oauth/token", function(req, res){
 	res.status(200).json({ access_token: '2YotnFZFEjr1zCsicMWpAA' });
 });
 
-var server = app.listen(9001, function () {
+var server = app.listen(9001, 'localhost', function () {
   var host = server.address().address;
   var port = server.address().port;
 

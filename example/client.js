@@ -7,18 +7,20 @@ var app = express();
 app.use('/', express.static('files'));
 
 app.get('/authorize', function(req, res){
+	
+	app.state = 'foo';
+	
 	var authorizeUrl = url.format({
 		protocol: 'http', 
 		hostname: 'localhost',
-		port: '9000',
+		port: '9001',
 		pathname: '/oauth/authorize', 
 		query: {
 			response_type: 'code', 
 			scope: 'openid', 
 			client_id: '788732372078-l4duigdj7793hb53871p3frd05v7n6df',
-			redirect_uri: 'http://localhost:8080/oauth/callback',
-			//TODO state
-			state: ''
+			redirect_uri: 'http://localhost:9000/oauth/callback',
+			state: app.state
 		}
 	});
 	console.log("redirect", authorizeUrl);
@@ -27,14 +29,18 @@ app.get('/authorize', function(req, res){
 
 
 app.get("/oauth/callback", function(req, res){
-	//TODO state
 	var state = req.query.state;
+	if (state == app.state) {
+		console.log('State value matches: expected %s got %s', app.state, state);
+	} else {
+		console.log('State DOES NOT MATCH: expected %s got %s', app.state, state);
+	}
 
 	var code = req.query.code;
 	console.log("code %s",code);
 
 	var requestOptions = {
-		url : 'http://localhost:8433/oauth/token',
+		url : 'http://localhost:9001/oauth/token',
 		method: 'POST',
 		json: true,
 		form: {
@@ -42,7 +48,7 @@ app.get("/oauth/callback", function(req, res){
 			code: code,
 			client_id: '788732372078-l4duigdj7793hb53871p3frd05v7n6df',
 			client_secret:'',
-			redirect_uri: 'http://localhost:8080/oauth/callback'
+			redirect_uri: 'http://localhost:9000/oauth/callback'
 		}
 
 	};
@@ -65,10 +71,9 @@ app.get("/oauth/callback", function(req, res){
 
 });
 
-var server = app.listen(9000, function () {
+var server = app.listen(9000, 'localhost', function () {
   var host = server.address().address;
   var port = server.address().port;
-
   console.log('OAuth Client is listening at http://%s:%s', host, port);
 });
  
