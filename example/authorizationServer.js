@@ -3,6 +3,22 @@ var url = require("url");
 
 var app = express();
 
+// authorization server information
+var authServer = {
+	authorizationEndpoint: 'http://localhost:9001/oauth/authorize',
+	tokenEndpoint: 'http://localhost:9001/oauth/token'
+};
+
+// client information
+var client = {
+	client_id: '788732372078-l4duigdj7793hb53871p3frd05v7n6df',
+	client_secret: '',
+	scope: '',
+	redirect_uri: 'http://localhost:9000/oauth/callback'
+};
+
+app.use('/', express.static('files'));
+
 app.get("/oauth/authorize", function(req, res){
 
 	var code = "SplxlOBeZQQYbYS6WxSbIA";

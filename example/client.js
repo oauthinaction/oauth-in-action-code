@@ -4,27 +4,37 @@ var url = require("url");
 
 var app = express();
 
+
+// authorization server information
+var authServer = {
+	authorizationEndpoint: 'http://localhost:9001/oauth/authorize',
+	tokenEndpoint: 'http://localhost:9001/oauth/token'
+};
+
+// client information
+var client = {
+	client_id: '788732372078-l4duigdj7793hb53871p3frd05v7n6df',
+	client_secret: '',
+	scope: '',
+	redirect_uri: 'http://localhost:9000/oauth/callback'
+};
+
 app.use('/', express.static('files'));
 
 app.get('/authorize', function(req, res){
 	
 	app.state = 'foo';
 	
-	var authorizeUrl = url.format({
-		protocol: 'http', 
-		hostname: 'localhost',
-		port: '9001',
-		pathname: '/oauth/authorize', 
-		query: {
-			response_type: 'code', 
-			scope: 'openid', 
-			client_id: '788732372078-l4duigdj7793hb53871p3frd05v7n6df',
-			redirect_uri: 'http://localhost:9000/oauth/callback',
-			state: app.state
-		}
-	});
-	console.log("redirect", authorizeUrl);
-	res.redirect(authorizeUrl);
+	var authorizeUrl = url.parse(authServer.authorizationEndpoint, true);
+	delete authorizeUrl.search; // this is to get around odd behavior in the node URL library
+	authorizeUrl.query.response_type = 'code';
+	authorizeUrl.query.scope = client.scope;
+	authorizeUrl.query.client_id = client.client_id;
+	authorizeUrl.query.redirect_uri = client.redirect_uri
+	authorizeUrl.query.state = app.state;
+	
+	console.log("redirect", url.format(authorizeUrl));
+	res.redirect(url.format(authorizeUrl));
 });
 
 
@@ -40,15 +50,15 @@ app.get("/oauth/callback", function(req, res){
 	console.log("code %s",code);
 
 	var requestOptions = {
-		url : 'http://localhost:9001/oauth/token',
+		url : authServer.tokenEndpoint,
 		method: 'POST',
 		json: true,
 		form: {
 			grant_type: 'authorization_code',
 			code: code,
-			client_id: '788732372078-l4duigdj7793hb53871p3frd05v7n6df',
-			client_secret:'',
-			redirect_uri: 'http://localhost:9000/oauth/callback'
+			client_id: client.client_id,
+			client_secret: client.client_secret,
+			redirect_uri: client.redirect_uri
 		}
 
 	};
