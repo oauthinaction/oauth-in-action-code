@@ -21,10 +21,10 @@ app.post("/oauth/token", function(req, res){
 	res.status(200).json({ access_token: '2YotnFZFEjr1zCsicMWpAA' });
 });
 
-var server = app.listen(8433, function () {
+var server = app.listen(9001, function () {
   var host = server.address().address;
   var port = server.address().port;
 
-  console.log('Example app listening at http://%s:%s', host, port);
+  console.log('OAuth Authorization Server is listening at http://%s:%s', host, port);
 });
  

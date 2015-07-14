@@ -6,11 +6,11 @@ var app = express();
 
 app.use('/', express.static('files'));
 
-app.get("/authorize", function(req, res){
+app.get('/authorize', function(req, res){
 	var authorizeUrl = url.format({
 		protocol: 'http', 
 		hostname: 'localhost',
-		port: '8433',
+		port: '9000',
 		pathname: '/oauth/authorize', 
 		query: {
 			response_type: 'code', 
@@ -65,10 +65,10 @@ app.get("/oauth/callback", function(req, res){
 
 });
 
-var server = app.listen(8080, function () {
+var server = app.listen(9000, function () {
   var host = server.address().address;
   var port = server.address().port;
 
-  console.log('Example app listening at http://%s:%s', host, port);
+  console.log('OAuth Client is listening at http://%s:%s', host, port);
 });
  
