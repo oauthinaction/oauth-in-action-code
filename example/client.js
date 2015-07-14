@@ -49,35 +49,33 @@ app.get("/oauth/callback", function(req, res){
 	var code = req.query.code;
 	console.log("code %s",code);
 
-	var requestOptions = {
-		url : authServer.tokenEndpoint,
-		method: 'POST',
-		json: true,
-		form: {
-			grant_type: 'authorization_code',
-			code: code,
-			client_id: client.client_id,
-			client_secret: client.client_secret,
-			redirect_uri: client.redirect_uri
-		}
+	request({
+			url : authServer.tokenEndpoint,
+			method: 'POST',
+			json: true,
+			form: {
+				grant_type: 'authorization_code',
+				code: code,
+				client_id: client.client_id,
+				client_secret: client.client_secret,
+				redirect_uri: client.redirect_uri
+			}
+		}, 
+		function(error, authorizationServerResponse, body) {
+			if (error) {
+				console.log("error while retrieving access token");
+				res.status(500).end();
+				return;
+			}
 
-	};
-
-	request(requestOptions, function(error, authorizationServerResponse, body) {
-		if (error) {
-			console.log("error while retrieving access token");
-			res.status(500).end();
-			return;
-		}
-
-		if (authorizationServerResponse.statusCode !== 200) {
-			console.log("error while retrieving access token with status code %s %j", authorizationServerResponse.statusCode, body);
-			res.status(500).end();
-			return;
-		}
-		console.log("acces token", body.access_token);
-		res.status(200).end();
-	});
+			if (authorizationServerResponse.statusCode !== 200) {
+				console.log("error while retrieving access token with status code %s %j", authorizationServerResponse.statusCode, body);
+				res.status(500).end();
+				return;
+			}
+			console.log("acces token", body.access_token);
+			res.status(200).end();
+		});
 
 });
 

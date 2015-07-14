@@ -1,7 +1,11 @@
 var express = require("express");
 var url = require("url");
+var bodyParser = require('body-parser');
+
 
 var app = express();
+
+app.use(bodyParser.urlencoded({ extended: true })); // support form-encoded bodies (for the token endpoint)
 
 // authorization server information
 var authServer = {
@@ -20,21 +24,32 @@ var client = {
 app.use('/', express.static('files'));
 
 app.get("/oauth/authorize", function(req, res){
+	
+	if (req.query.client_id == client.client_id) {
+		var code = "SplxlOBeZQQYbYS6WxSbIA";
 
-	var code = "SplxlOBeZQQYbYS6WxSbIA";
+		var urlParsed =url.parse(req.query.redirect_uri);
 
-	var urlParsed =url.parse(req.query.redirect_uri);
+		urlParsed.query = urlParsed.query || {};
+		urlParsed.query.code = code;
+		urlParsed.query.state = req.query.state; 
 
-	urlParsed.query = urlParsed.query || {};
-	urlParsed.query.code = code;
-	urlParsed.query.state = req.query.state; 
+		res.redirect(url.format(urlParsed));
+		
+	} else {
+		console.log('Unknown client, expected %s got %s', client.client_id, res.query.client_id);
+	}
 
-	res.redirect(url.format(urlParsed));
 });
 
 
 app.post("/oauth/token", function(req, res){
-	res.status(200).json({ access_token: '2YotnFZFEjr1zCsicMWpAA' });
+	
+	if (req.body.client_id == client.client_id && req.body.client_secret == client.client_secret) {
+		res.status(200).json({ access_token: '2YotnFZFEjr1zCsicMWpAA' });
+	} else {
+		console.log('Unknown client or secret, expected %s got %s', client.client_id, req.body.client_id);
+	}
 });
 
 var server = app.listen(9001, 'localhost', function () {
