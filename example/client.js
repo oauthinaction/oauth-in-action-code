@@ -1,6 +1,7 @@
 var express = require("express");
-var request = require("request");
+var request = require("sync-request");
 var url = require("url");
+var qs = require("qs");
 
 var app = express();
 
@@ -49,33 +50,27 @@ app.get("/oauth/callback", function(req, res){
 	var code = req.query.code;
 	console.log("code %s",code);
 
-	request({
-			url : authServer.tokenEndpoint,
-			method: 'POST',
-			json: true,
-			form: {
+	var form_data = qs.stringify({
 				grant_type: 'authorization_code',
 				code: code,
 				client_id: client.client_id,
 				client_secret: client.client_secret,
 				redirect_uri: client.redirect_uri
-			}
-		}, 
-		function(error, authorizationServerResponse, body) {
-			if (error) {
-				console.log("error while retrieving access token");
-				res.status(500).end();
-				return;
-			}
+			});
+	var headers = {
+		'Content-Type': 'application/x-www-form-urlencoded'
+	};
+	console.log("form: %s", form_data);
 
-			if (authorizationServerResponse.statusCode !== 200) {
-				console.log("error while retrieving access token with status code %s %j", authorizationServerResponse.statusCode, body);
-				res.status(500).end();
-				return;
-			}
-			console.log("acces token", body.access_token);
-			res.status(200).end();
-		});
+	var tokRes = request('POST', authServer.tokenEndpoint, 
+		{	
+			body: form_data,
+			headers: headers
+		}
+	);
+	var body = JSON.parse(tokRes.getBody());
+	console.log("acces token", body.access_token);
+	res.status(200).end();
 
 });
 

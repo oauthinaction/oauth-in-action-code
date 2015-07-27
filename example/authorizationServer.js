@@ -49,6 +49,7 @@ app.post("/oauth/token", function(req, res){
 		res.status(200).json({ access_token: '2YotnFZFEjr1zCsicMWpAA' });
 	} else {
 		console.log('Unknown client or secret, expected %s got %s', client.client_id, req.body.client_id);
+		res.status(400).end();
 	}
 });
 
