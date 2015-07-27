@@ -1,7 +1,7 @@
 var express = require("express");
 var url = require("url");
 var bodyParser = require('body-parser');
-
+var randomstring = require("randomstring");
 
 var app = express();
 
@@ -21,12 +21,14 @@ var client = {
 	redirect_uri: 'http://localhost:9000/oauth/callback'
 };
 
+var code = null;
+
 app.use('/', express.static('files'));
 
 app.get("/oauth/authorize", function(req, res){
 	
 	if (req.query.client_id == client.client_id) {
-		var code = "SplxlOBeZQQYbYS6WxSbIA";
+		code = randomstring.generate(8);
 
 		var urlParsed =url.parse(req.query.redirect_uri);
 
@@ -46,7 +48,13 @@ app.get("/oauth/authorize", function(req, res){
 app.post("/oauth/token", function(req, res){
 	
 	if (req.body.client_id == client.client_id && req.body.client_secret == client.client_secret) {
-		res.status(200).json({ access_token: '2YotnFZFEjr1zCsicMWpAA' });
+		if (req.body.code == code) {
+			code = null;
+			res.status(200).json({ access_token: randomstring.generate(), token_type: 'Bearer' });
+		} else {
+			console.log('Unknown code, expected %s got %s', code, req.body.code);
+			res.status(400).end();
+		}
 	} else {
 		console.log('Unknown client or secret, expected %s got %s', client.client_id, req.body.client_id);
 		res.status(400).end();

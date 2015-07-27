@@ -5,7 +5,8 @@
 	"sync-request": "^2.0.1",
 	"body-parser": "^1.13.2",
 	"underscore": "^1.8.3",
-	"consolidate": "0.13.1",
-	"qs": "4.0.0"
+	"consolidate": "^0.13.1",
+	"qs": "^4.0.0",
+	"randomstring": "^1.0.7"
   }
 }

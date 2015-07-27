@@ -3,6 +3,8 @@ var request = require("sync-request");
 var url = require("url");
 var qs = require("qs");
 var cons = require('consolidate');
+var randomstring = require("randomstring");
+
 
 var app = express();
 
@@ -28,7 +30,7 @@ app.use('/', express.static('files'));
 
 app.get('/authorize', function(req, res){
 	
-	app.state = 'foo';
+	app.state = randomstring.generate();
 	
 	var authorizeUrl = url.parse(authServer.authorizationEndpoint, true);
 	delete authorizeUrl.search; // this is to get around odd behavior in the node URL library
