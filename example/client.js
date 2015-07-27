@@ -2,9 +2,13 @@ var express = require("express");
 var request = require("sync-request");
 var url = require("url");
 var qs = require("qs");
+var cons = require('consolidate');
 
 var app = express();
 
+app.engine('html', cons.underscore);
+app.set('view engine', 'html');
+app.set('views', 'files');
 
 // authorization server information
 var authServer = {
@@ -70,7 +74,8 @@ app.get("/oauth/callback", function(req, res){
 	);
 	var body = JSON.parse(tokRes.getBody());
 	console.log("acces token", body.access_token);
-	res.status(200).end();
+
+	res.render('access_token', {access_token: body.access_token});
 
 });
 
