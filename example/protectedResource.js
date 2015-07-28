@@ -2,6 +2,7 @@ var express = require("express");
 var url = require("url");
 var bodyParser = require('body-parser');
 var randomstring = require("randomstring");
+var cons = require('consolidate');
 var nosql = require('nosql').load('database.nosql');
 var __ = require('underscore');
 
@@ -9,7 +10,11 @@ var app = express();
 
 app.use(bodyParser.urlencoded({ extended: true })); // support form-encoded bodies (for bearer tokens)
 
-app.use('/', express.static('files'));
+app.engine('html', cons.underscore);
+app.set('view engine', 'html');
+app.set('views', 'files/protectedResource');
+
+app.use('/', express.static('files/protectedResource'));
 
 var resource = {
 	"name": "Protected Resource",

@@ -2,11 +2,16 @@ var express = require("express");
 var url = require("url");
 var bodyParser = require('body-parser');
 var randomstring = require("randomstring");
+var cons = require('consolidate');
 var nosql = require('nosql').load('database.nosql');
 
 var app = express();
 
 app.use(bodyParser.urlencoded({ extended: true })); // support form-encoded bodies (for the token endpoint)
+
+app.engine('html', cons.underscore);
+app.set('view engine', 'html');
+app.set('views', 'files/authorizationServer');
 
 // authorization server information
 var authServer = {
@@ -16,19 +21,21 @@ var authServer = {
 
 // client information
 var client = {
-	client_id: '788732372078-l4duigdj7793hb53871p3frd05v7n6df',
-	client_secret: '',
-	scope: '',
-	redirect_uri: 'http://localhost:9000/oauth/callback'
+	"client_id": "oauth-client-1",
+	"client_secret": "oauth-client-secret-1",
+	"redirect_uri": "http://localhost:9000/oauth_callback",
+	"scope": "foo"
 };
 
 var code = null;
 
-app.use('/', express.static('files'));
+app.get('/', function(req, res) {
+	res.render('index', {client: client, authServer: authServer});
+});
 
 app.get("/oauth/authorize", function(req, res){
 	
-	if (req.query.client_id == client.client_id) {
+	if (req.query.client_id == client.client_id && req.query.redirect_uri == client.redirect_uri) {
 		code = randomstring.generate(8);
 
 		var urlParsed =url.parse(req.query.redirect_uri);
@@ -63,6 +70,8 @@ app.post("/oauth/token", function(req, res){
 		res.status(400).end();
 	}
 });
+
+app.use('/', express.static('files/authorizationServer'));
 
 // clear the database
 nosql.clear();

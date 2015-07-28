@@ -10,7 +10,7 @@ var app = express();
 
 app.engine('html', cons.underscore);
 app.set('view engine', 'html');
-app.set('views', 'files');
+app.set('views', 'files/client');
 
 // authorization server information
 var authServer = {
@@ -20,15 +20,15 @@ var authServer = {
 
 // client information
 var client = {
-	client_id: '788732372078-l4duigdj7793hb53871p3frd05v7n6df',
-	client_secret: '',
-	scope: '',
-	redirect_uri: 'http://localhost:9000/oauth/callback'
+	"client_id": "oauth-client-1",
+	"client_secret": "oauth-client-secret-1",
+	"redirect_uri": "http://localhost:9000/oauth_callback",
+	"scope": "foo"
 };
 
 var state = null;
 
-app.use('/', express.static('files'));
+app.use('/', express.static('files/client'));
 
 app.get('/authorize', function(req, res){
 	
@@ -47,7 +47,7 @@ app.get('/authorize', function(req, res){
 });
 
 
-app.get("/oauth/callback", function(req, res){
+app.get("/oauth_callback", function(req, res){
 	var resState = req.query.state;
 	if (resState == state) {
 		console.log('State value matches: expected %s got %s', app.state, state);
