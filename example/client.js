@@ -26,11 +26,13 @@ var client = {
 	redirect_uri: 'http://localhost:9000/oauth/callback'
 };
 
+var state = null;
+
 app.use('/', express.static('files'));
 
 app.get('/authorize', function(req, res){
 	
-	app.state = randomstring.generate();
+	state = randomstring.generate();
 	
 	var authorizeUrl = url.parse(authServer.authorizationEndpoint, true);
 	delete authorizeUrl.search; // this is to get around odd behavior in the node URL library
@@ -38,7 +40,7 @@ app.get('/authorize', function(req, res){
 	authorizeUrl.query.scope = client.scope;
 	authorizeUrl.query.client_id = client.client_id;
 	authorizeUrl.query.redirect_uri = client.redirect_uri
-	authorizeUrl.query.state = app.state;
+	authorizeUrl.query.state = state;
 	
 	console.log("redirect", url.format(authorizeUrl));
 	res.redirect(url.format(authorizeUrl));
@@ -46,11 +48,12 @@ app.get('/authorize', function(req, res){
 
 
 app.get("/oauth/callback", function(req, res){
-	var state = req.query.state;
-	if (state == app.state) {
+	var resState = req.query.state;
+	if (resState == state) {
 		console.log('State value matches: expected %s got %s', app.state, state);
 	} else {
 		console.log('State DOES NOT MATCH: expected %s got %s', app.state, state);
+		res.status(400).end();
 	}
 
 	var code = req.query.code;

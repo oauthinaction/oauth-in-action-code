@@ -2,6 +2,7 @@ var express = require("express");
 var url = require("url");
 var bodyParser = require('body-parser');
 var randomstring = require("randomstring");
+var nosql = require('nosql').load('database.nosql');
 
 var app = express();
 
@@ -31,7 +32,7 @@ app.get("/oauth/authorize", function(req, res){
 		code = randomstring.generate(8);
 
 		var urlParsed =url.parse(req.query.redirect_uri);
-
+		delete urlParsed.search; // this is a weird behavior of the URL library
 		urlParsed.query = urlParsed.query || {};
 		urlParsed.query.code = code;
 		urlParsed.query.state = req.query.state; 
@@ -49,8 +50,10 @@ app.post("/oauth/token", function(req, res){
 	
 	if (req.body.client_id == client.client_id && req.body.client_secret == client.client_secret) {
 		if (req.body.code == code) {
-			code = null;
-			res.status(200).json({ access_token: randomstring.generate(), token_type: 'Bearer' });
+			code = null; // burn our code, it's been used
+			var token = { access_token: randomstring.generate(), token_type: 'Bearer' };
+			nosql.insert(token);
+			res.status(200).json(token);
 		} else {
 			console.log('Unknown code, expected %s got %s', code, req.body.code);
 			res.status(400).end();
@@ -60,6 +63,9 @@ app.post("/oauth/token", function(req, res){
 		res.status(400).end();
 	}
 });
+
+// clear the database
+nosql.clear();
 
 var server = app.listen(9001, 'localhost', function () {
   var host = server.address().address;
