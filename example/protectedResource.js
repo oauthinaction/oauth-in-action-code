@@ -16,7 +16,7 @@ var resource = {
 	"description": "This data has been protected by OAuth 2.0"
 };
 
-app.get("/resource", function(req, res){
+app.post("/resource", function(req, res){
 
 	// check the auth header first
 	var auth = req.headers['authorization'];
@@ -26,8 +26,8 @@ app.get("/resource", function(req, res){
 	}
 	if (!inToken) {
 		// not in the header, check in the form body
-		if (res.body && res.body.access_token) {
-			inToken = res.body.access_token;
+		if (req.body && req.body.access_token) {
+			inToken = req.body.access_token;
 		}
 	}
 	if (!inToken) {
@@ -45,11 +45,11 @@ app.get("/resource", function(req, res){
 	}, function(err, tokens) {
 		if (tokens.length == 1) {
 			console.log("We found a matching token: %s", inToken);
+			res.json(resource);
 		} else {
 			console.log('No matching token was found.');
+			res.status(401).end();
 		}
-		
-		res.end();
 	});
 	
 });
