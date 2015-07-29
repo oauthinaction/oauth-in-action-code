@@ -26,7 +26,12 @@ var client = {
 	"scope": "foo"
 };
 
+var protectedResource = 'http://localhost:9002/resource';
+
 var state = null;
+
+var access_token = null;
+var refresh_token = null;
 
 app.use('/', express.static('files/client'));
 
@@ -78,10 +83,44 @@ app.get("/oauth_callback", function(req, res){
 		}
 	);
 	var body = JSON.parse(tokRes.getBody());
-	console.log("acces token", body.access_token);
+	
+	access_token = body.access_token;
+	refresh_token = body.refresh_token;
+	
+	console.log("acces token", access_token);
 
-	res.render('access_token', {access_token: body.access_token});
+	res.render('access_token', {access_token: access_token});
 
+});
+
+app.get('/fetch_resource', function(req, res) {
+
+	if (!access_token) {
+		res.render('error', {error: 'Missing access token.'});
+		return;
+	}
+	
+	console.log('Making request with access token %s', access_token);
+	
+	var headers = {
+		'Authorization': 'Bearer ' + access_token
+	};
+	
+	var resource = request('POST', protectedResource,
+		{headers: headers}
+	);
+	
+	if (resource.statusCode >= 200 && resource.statusCode < 300) {
+		var body = JSON.parse(resource.getBody());
+	
+		res.render('data', {resource: body});
+		return;
+	} else {
+		res.render('error', {error: 'Server returned response code: ' + resource.statusCode});
+		return;
+	}
+	
+	
 });
 
 var server = app.listen(9000, 'localhost', function () {

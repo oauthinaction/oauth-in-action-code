@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <title>OAuth in Action: OAuth Authorization Server</title>
+    <title>OAuth in Action: OAuth Client</title>
 
     <!-- Bootstrap -->
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
@@ -14,7 +14,7 @@
 	  padding-top: 60px;
 	}
 	.navbar-inverse {
-		background-color: #322;
+		background-color: #223;
 	}
 	</style>
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
@@ -29,7 +29,7 @@
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container">
         <div class="navbar-header">
-          <a class="navbar-brand" href="/">OAuth in Action: OAuth Authorization Server</a>
+          <a class="navbar-brand" href="/">OAuth in Action: OAuth Client</a>
         </div>
       </div>
     </nav>
@@ -37,18 +37,8 @@
     <div class="container">
 
       <div class="jumbotron">
-		  <h2>Client information:</h2>
-		  <ul>
-			  <li><b>client_id:</b> <code><%- client.client_id %></code></li>
-			  <li><b>client_secret:</b> <code><%- client.client_secret %></code></li>
-			  <li><b>scope:</b> <code><%- client.scope %></code></li>
-			  <li><b>redirect_uri:</b> <code><%- client.redirect_uri %></code></li>
-		   </ul>
-		   <h2>Server information:</h2>
-		  <ul>
-			  <li><b>authorization_endpoint:</b> <code><%- authServer.authorizationEndpoint %></code></li>
-			  <li><b>token_endpoint:</b> <code><%- authServer.tokenEndpoint %></code></li>
-		   </ul>
+		  <h2>Data from protected resource:</h2>
+		  <pre><%- JSON.stringify(resource, null, 4) %></pre>
       </div>
 
     </div><!-- /.container -->

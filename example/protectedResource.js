@@ -13,6 +13,7 @@ app.use(bodyParser.urlencoded({ extended: true })); // support form-encoded bodi
 app.engine('html', cons.underscore);
 app.set('view engine', 'html');
 app.set('views', 'files/protectedResource');
+app.set('json spaces', 4);
 
 app.use('/', express.static('files/protectedResource'));
 
