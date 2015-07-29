@@ -110,8 +110,44 @@ app.get("/callback", function(req, res){
 app.get('/fetch_resource', function(req, res) {
 
 	if (!access_token) {
-		res.render('error', {error: 'Missing access token.'});
-		return;
+		if (refresh_token) {
+			// try to refresh and start again
+			var form_data = qs.stringify({
+						grant_type: 'refresh_token',
+						refresh_token: refresh_token,
+						client_id: client.client_id,
+						client_secret: client.client_secret,
+						redirect_uri: client.redirect_uri
+					});
+			var headers = {
+				'Content-Type': 'application/x-www-form-urlencoded'
+			};
+			var tokRes = request('POST', authServer.tokenEndpoint, 
+				{	
+					body: form_data,
+					headers: headers
+				}
+			);
+			if (tokRes.statusCode >= 200 && tokRes.statusCode < 300) {
+				var body = JSON.parse(tokRes.getBody());
+	
+				access_token = body.access_token;
+				if (body.refresh_token) {
+					refresh_token = body.refresh_token;
+				}
+			
+				// try again
+				res.redirect('/fetch_resource');
+			} else {
+				console.log('No refresh token, asking the user to get a new access token');
+				// tell the user to get a new access token
+				res.redirect('/authorize');
+			}
+			
+		} else {
+			res.render('error', {error: 'Missing access token.'});
+			return;
+		}
 	}
 	
 	console.log('Making request with access token %s', access_token);
