@@ -14,15 +14,15 @@ app.set('views', 'files/client');
 
 // authorization server information
 var authServer = {
-	authorizationEndpoint: 'http://localhost:9001/oauth/authorize',
-	tokenEndpoint: 'http://localhost:9001/oauth/token'
+	authorizationEndpoint: 'http://localhost:9001/authorize',
+	tokenEndpoint: 'http://localhost:9001/token'
 };
 
 // client information
 var client = {
 	"client_id": "oauth-client-1",
 	"client_secret": "oauth-client-secret-1",
-	"redirect_uri": "http://localhost:9000/oauth_callback",
+	"redirect_uri": "http://localhost:9000/callback",
 	"scope": "foo"
 };
 
@@ -37,6 +37,8 @@ app.use('/', express.static('files/client'));
 
 app.get('/authorize', function(req, res){
 	
+	access_token = null;
+	refresh_token = null;
 	state = randomstring.generate();
 	
 	var authorizeUrl = url.parse(authServer.authorizationEndpoint, true);
@@ -52,7 +54,14 @@ app.get('/authorize', function(req, res){
 });
 
 
-app.get("/oauth_callback", function(req, res){
+app.get("/callback", function(req, res){
+	
+	if (req.query.error) {
+		// it's an error response, act accordingly
+		res.render('error', {error: req.query.error});
+		return;
+	}
+	
 	var resState = req.query.state;
 	if (resState == state) {
 		console.log('State value matches: expected %s got %s', app.state, state);
