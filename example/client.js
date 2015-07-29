@@ -67,7 +67,8 @@ app.get("/callback", function(req, res){
 		console.log('State value matches: expected %s got %s', app.state, state);
 	} else {
 		console.log('State DOES NOT MATCH: expected %s got %s', app.state, state);
-		res.status(400).end();
+		res.render('error', {error: 'State value did not match'});
+		return;
 	}
 
 	var code = req.query.code;
@@ -83,7 +84,6 @@ app.get("/callback", function(req, res){
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded'
 	};
-	console.log("form: %s", form_data);
 
 	var tokRes = request('POST', authServer.tokenEndpoint, 
 		{	
@@ -91,15 +91,20 @@ app.get("/callback", function(req, res){
 			headers: headers
 		}
 	);
-	var body = JSON.parse(tokRes.getBody());
 	
-	access_token = body.access_token;
-	refresh_token = body.refresh_token;
+	if (tokRes.statusCode >= 200 && tokRes.statusCode < 300) {
+		var body = JSON.parse(tokRes.getBody());
 	
-	console.log("acces token", access_token);
+		access_token = body.access_token;
+		refresh_token = body.refresh_token;
+	
+		console.log("access token", access_token);
+		console.log('refresh token', refresh_token);
 
-	res.render('access_token', {access_token: access_token});
-
+		res.render('access_token', {access_token: access_token, refresh_token: refresh_token});
+	} else {
+		res.render('error', {error: 'Unable to fetch access token, server response: ' + tokRes.statusCode})
+	}
 });
 
 app.get('/fetch_resource', function(req, res) {
@@ -121,12 +126,48 @@ app.get('/fetch_resource', function(req, res) {
 	
 	if (resource.statusCode >= 200 && resource.statusCode < 300) {
 		var body = JSON.parse(resource.getBody());
-	
 		res.render('data', {resource: body});
 		return;
 	} else {
-		res.render('error', {error: 'Server returned response code: ' + resource.statusCode});
-		return;
+		access_token = null;
+		if (refresh_token) {
+			// try to refresh and start again
+			var form_data = qs.stringify({
+						grant_type: 'refresh_token',
+						refresh_token: refresh_token,
+						client_id: client.client_id,
+						client_secret: client.client_secret,
+						redirect_uri: client.redirect_uri
+					});
+			var headers = {
+				'Content-Type': 'application/x-www-form-urlencoded'
+			};
+			var tokRes = request('POST', authServer.tokenEndpoint, 
+				{	
+					body: form_data,
+					headers: headers
+				}
+			);
+			if (tokRes.statusCode >= 200 && tokRes.statusCode < 300) {
+				var body = JSON.parse(tokRes.getBody());
+	
+				access_token = body.access_token;
+				if (body.refresh_token) {
+					refresh_token = body.refresh_token;
+				}
+			
+				// try again
+				res.redirect('/fetch_resource');
+			} else {
+				console.log('No refresh token, asking the user to get a new access token');
+				// tell the user to get a new access token
+				res.redirect('/authorize');
+			}
+			
+		} else {
+			res.render('error', {error: 'Server returned response code: ' + resource.statusCode});
+			return;
+		}
 	}
 	
 	

@@ -74,16 +74,42 @@ app.post('/approve', function(req, res) {
 app.post("/token", function(req, res){
 	
 	if (req.body.client_id == client.client_id && req.body.client_secret == client.client_secret) {
-		if (req.body.code == code) {
-			code = null; // burn our code, it's been used
-			var token = { access_token: randomstring.generate(), token_type: 'Bearer' };
-			nosql.insert(token);
-			res.status(200).json(token);
-			return;
+		if (req.body.grant_type == 'authorization_code') {
+			if (req.body.code == code) {
+				code = null; // burn our code, it's been used
+				var refresh_token = randomstring.generate();
+				var access_token = randomstring.generate();
+				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: refresh_token };
+				nosql.insert({ access_token: access_token, client_id: req.body.client_id });
+				nosql.insert({ refresh_token: refresh_token, client_id: req.body.client_id });
+				console.log('Issuing access token %s and refresh token %s for code %s', access_token, refresh_token, req.body.code);
+				res.status(200).json(token_response);
+				return;
+			} else {
+				console.log('Unknown code, expected %s got %s', code, req.body.code);
+				res.status(400).end();
+				return;
+			}
+		} else if (req.body.grant_type == 'refresh_token') {
+			nosql.all(function(token) {
+				return (token.refresh_token == req.body.refresh_token);
+			}, function(err, tokens) {
+				if (tokens.length == 1) {
+					console.log("We found a matching token: %s", req.body.refresh_token);
+					var access_token = randomstring.generate();
+					var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: refresh_token };
+					nosql.insert({ access_token: access_token, client_id: req.body.client_id });
+					console.log('Issuing access token %s for refresh token %s', access_token, req.body.refresh_token);
+					res.status(200).json(token_response);
+					return;
+				} else {
+					console.log('No matching token was found.');
+					res.status(401).end();
+				}
+			});
 		} else {
-			console.log('Unknown code, expected %s got %s', code, req.body.code);
+			console.log('Unknown grant type %s', req.body.grant_type);
 			res.status(400).end();
-			return;
 		}
 	} else {
 		console.log('Unknown client or secret, expected %s got %s', client.client_id, req.body.client_id);
