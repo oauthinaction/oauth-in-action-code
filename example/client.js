@@ -2,6 +2,7 @@ var express = require("express");
 var request = require("sync-request");
 var url = require("url");
 var qs = require("qs");
+var querystring = require('querystring');
 var cons = require('consolidate');
 var randomstring = require("randomstring");
 
@@ -78,12 +79,13 @@ app.get("/callback", function(req, res){
 	var form_data = qs.stringify({
 				grant_type: 'authorization_code',
 				code: code,
-				client_id: client.client_id,
-				client_secret: client.client_secret,
+//				client_id: client.client_id,
+//				client_secret: client.client_secret,
 				redirect_uri: client.redirect_uri
 			});
 	var headers = {
-		'Content-Type': 'application/x-www-form-urlencoded'
+		'Content-Type': 'application/x-www-form-urlencoded',
+		'Authorization': new Buffer(querystring.escape(client.client_id) + '2:' + querystring.escape(client.client_secret)).toString('base64')
 	};
 
 	var tokRes = request('POST', authServer.tokenEndpoint, 
