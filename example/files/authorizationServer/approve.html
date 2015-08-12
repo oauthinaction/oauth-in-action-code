@@ -43,9 +43,7 @@
 			  <li><b>scope:</b> <code><%- client.scope %></code></li>
 		   </ul>
 		   <form action="/approve" method="POST">
-			   <% _.each(params, function(value, key) { %>
-				   <input type="hidden" name="<%- key %>" value="<%- value %>">
-			   <% }); %>
+			   <input type="hidden" name="reqid" value="<%- reqid %>">
 			   <input type="submit" class="btn btn-success" name="approve" value="Approve">
 			   <input type="submit" class="btn btn-danger" name="deny" value="Deny">
 		   </form>
