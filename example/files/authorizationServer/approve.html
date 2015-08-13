@@ -38,12 +38,17 @@
 
       <div class="jumbotron">
 		  <h2>Approve this client?</h2>
-		  <ul>
-			  <li><b>client_id:</b> <code><%- client.client_id %></code></li>
-			  <li><b>scope:</b> <code><%- client.scope %></code></li>
-		   </ul>
-		   <form action="/approve" method="POST">
+		  <p><b>client_id:</b> <code><%- client.client_id %></code></p>
+		   <form class="form" action="/approve" method="POST">
 			   <input type="hidden" name="reqid" value="<%- reqid %>">
+			   <% if (scope) { %>
+			   <p>The client is requesting access to the following:</p>
+			   <ul>
+			   <% _.each(scope, function(s) { %>
+			   	  <li><input type="checkbox" name="scope_<%- s %>" id="scope_<%- s %>" checked="checked"> <label for="scope_<%- s %>"><%- s %></label></li>
+			   <% }); %>
+		       </ul>
+			   <% } %>
 			   <input type="submit" class="btn btn-success" name="approve" value="Approve">
 			   <input type="submit" class="btn btn-danger" name="deny" value="Deny">
 		   </form>

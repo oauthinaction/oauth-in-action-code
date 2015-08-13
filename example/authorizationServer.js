@@ -6,6 +6,7 @@ var cons = require('consolidate');
 var nosql = require('nosql').load('database.nosql');
 var querystring = require('querystring');
 var __ = require('underscore');
+__.string = require('underscore.string');
 
 var app = express();
 
@@ -28,13 +29,13 @@ var clients = [
 		"client_id": "oauth-client-1",
 		"client_secret": "oauth-client-secret-1",
 		"redirect_uri": "http://localhost:9000/callback",
-		"scope": "foo"
+		"scope": ["foo", "bar", "baz", "quux"]
 	},
 	{
-		"client_id": "oauth-client-12",
+		"client_id": "oauth-client-2",
 		"client_secret": "oauth-client-secret-1",
 		"redirect_uri": "http://localhost:9000/callback",
-		"scope": "foo"
+		"scope": ["bar"]
 	}
 ];
 
@@ -47,7 +48,7 @@ var getClient = function(clientId) {
 };
 
 app.get('/', function(req, res) {
-	res.render('index', {client: client, authServer: authServer});
+	res.render('index', {clients: clients, authServer: authServer});
 });
 
 app.get("/authorize", function(req, res){
@@ -64,11 +65,22 @@ app.get("/authorize", function(req, res){
 		return;
 	} else {
 		
+		var scope = req.query.scope ? req.query.scope.split(' ') : undefined;
+		if (__.difference(scope, client.scope).length > 0) {
+			// client asked for a scope it couldn't have
+			var urlParsed =url.parse(client.redirect_uri);
+			delete urlParsed.search; // this is a weird behavior of the URL library
+			urlParsed.query = urlParsed.query || {};
+			urlParsed.query.error = 'invalid_scope';
+			res.redirect(url.format(urlParsed));
+			return;
+		}
+		
 		var reqid = randomstring.generate(8);
 		
 		requests[reqid] = req.query;
 		
-		res.render('approve', {client: client, reqid: reqid});
+		res.render('approve', {client: client, reqid: reqid, scope: scope});
 		return;
 	}
 
@@ -87,18 +99,43 @@ app.post('/approve', function(req, res) {
 	}
 	
 	if (req.body.approve) {
-		// user approved access
-		var code = randomstring.generate(8);
+		if (query.response_type == 'code') {
+			// user approved access
+			var code = randomstring.generate(8);
 		
-		// save the code and request for later
-		codes[code] = { authorizationEndpointRequest: query };
+			var scope = __.filter(__.keys(req.body), function(s) { return __.string.startsWith(s, 'scope_'); })
+				.map(function(s) { return s.slice('scope_'.length); });
+				console.log(scope);
+			var client = getClient(query.client_id);
+			if (__.difference(scope, client.scope).length > 0) {
+				// client asked for a scope it couldn't have
+				var urlParsed =url.parse(client.redirect_uri);
+				delete urlParsed.search; // this is a weird behavior of the URL library
+				urlParsed.query = urlParsed.query || {};
+				urlParsed.query.error = 'invalid_scope';
+				res.redirect(url.format(urlParsed));
+				return;
+			}
+
+			// save the code and request for later
+			codes[code] = { authorizationEndpointRequest: query, scope: scope };
 		
-		var urlParsed =url.parse(query.redirect_uri);
-		delete urlParsed.search; // this is a weird behavior of the URL library
-		urlParsed.query = urlParsed.query || {};
-		urlParsed.query.code = code;
-		urlParsed.query.state = query.state; 
-		res.redirect(url.format(urlParsed));
+			var urlParsed =url.parse(query.redirect_uri);
+			delete urlParsed.search; // this is a weird behavior of the URL library
+			urlParsed.query = urlParsed.query || {};
+			urlParsed.query.code = code;
+			urlParsed.query.state = query.state; 
+			res.redirect(url.format(urlParsed));
+			return;
+		} else {
+			// we got a response type we don't understand
+			var urlParsed =url.parse(query.redirect_uri);
+			delete urlParsed.search; // this is a weird behavior of the URL library
+			urlParsed.query = urlParsed.query || {};
+			urlParsed.query.error = 'unsupported_response_type';
+			res.redirect(url.format(urlParsed));
+			return;
+		}
 	} else {
 		// user denied access
 		var urlParsed =url.parse(query.redirect_uri);
@@ -106,6 +143,7 @@ app.post('/approve', function(req, res) {
 		urlParsed.query = urlParsed.query || {};
 		urlParsed.query.error = 'access_denied';
 		res.redirect(url.format(urlParsed));
+		return;
 	}
 	
 });
@@ -124,6 +162,7 @@ app.post("/token", function(req, res){
 	if (req.body.client_id) {
 		if (clientId) {
 			// if we've already seen the client's credentials in the authorization header, this is an error
+			console.logt('Client attempted to authenticate with multiple methods');
 			res.status(401).json({error: 'invalid_client'});
 			return;
 		}
@@ -134,11 +173,13 @@ app.post("/token", function(req, res){
 	
 	var client = getClient(clientId);
 	if (!client) {
+		console.log('Unknown client %s', clientId);
 		res.status(401).json({error: 'invalid_client'});
 		return;
 	}
 	
 	if (client.client_secret != clientSecret) {
+		console.log('Mismatched client secret, expected %s got %s', client.client_secret, clientSecret);
 		res.status(401).json({error: 'invalid_client'});
 		return;
 	}
@@ -153,12 +194,12 @@ app.post("/token", function(req, res){
 				var access_token = randomstring.generate();
 				var refresh_token = randomstring.generate();
 
-				nosql.insert({ access_token: access_token, client_id: clientId });
-				nosql.insert({ refresh_token: refresh_token, client_id: clientId });
+				nosql.insert({ access_token: access_token, client_id: clientId, scope: code.scope });
+				nosql.insert({ refresh_token: refresh_token, client_id: clientId, scope: code.scope });
 
-				console.log('Issuing access token %s and refresh token %s for code %s', access_token, refresh_token, req.body.code);
+				console.log('Issuing access token %s and refresh token %s with scope %s for code %s', access_token, refresh_token, code.scope, req.body.code);
 
-				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: refresh_token };
+				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: refresh_token, scope: code.scope.join(' ') };
 				res.status(200).json(token_response);
 				return;
 			} else {

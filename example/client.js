@@ -33,9 +33,10 @@ var state = null;
 
 var access_token = null;
 var refresh_token = null;
+var scope = null;
 
 app.get('/', function (req, res) {
-	res.render('index', {access_token: access_token, refresh_token: refresh_token});
+	res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope});
 });
 
 app.get('/authorize', function(req, res){
@@ -67,9 +68,9 @@ app.get("/callback", function(req, res){
 	
 	var resState = req.query.state;
 	if (resState == state) {
-		console.log('State value matches: expected %s got %s', app.state, state);
+		console.log('State value matches: expected %s got %s', state, resState);
 	} else {
-		console.log('State DOES NOT MATCH: expected %s got %s', app.state, state);
+		console.log('State DOES NOT MATCH: expected %s got %s', state, resState);
 		res.render('error', {error: 'State value did not match'});
 		return;
 	}
@@ -85,7 +86,7 @@ app.get("/callback", function(req, res){
 			});
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',
-		'Authorization': new Buffer(querystring.escape(client.client_id) + '2:' + querystring.escape(client.client_secret)).toString('base64')
+		'Authorization': new Buffer(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
 	};
 
 	var tokRes = request('POST', authServer.tokenEndpoint, 
@@ -101,12 +102,15 @@ app.get("/callback", function(req, res){
 		var body = JSON.parse(tokRes.getBody());
 	
 		access_token = body.access_token;
-		refresh_token = body.refresh_token;
-	
-		console.log('Got access token %s', access_token);
-		console.log('Got refresh token %s', refresh_token);
+		console.log('Got access token: %s', access_token);
+		if (body.refresh_token) {
+			refresh_token = body.refresh_token;
+			console.log('Got refresh token: %s', refresh_token);
+		}
+		scope = body.scope;
+		console.log('Got scope: %s', scope);
 
-		res.render('index', {access_token: access_token, refresh_token: refresh_token});
+		res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope});
 	} else {
 		res.render('error', {error: 'Unable to fetch access token, server response: ' + tokRes.statusCode})
 	}
@@ -141,7 +145,10 @@ app.get('/fetch_resource', function(req, res) {
 				console.log('Got access token: %s', access_token);
 				if (body.refresh_token) {
 					refresh_token = body.refresh_token;
+					console.log('Got refresh token: %s', refresh_token);
 				}
+				scope = body.scope;
+				console.log('Got scope: %s', scope);
 			
 				// try again
 				res.redirect('/fetch_resource');
@@ -202,6 +209,8 @@ app.get('/fetch_resource', function(req, res) {
 				if (body.refresh_token) {
 					refresh_token = body.refresh_token;
 				}
+				scope = body.scope;
+				console.log('Got scope: %s', scope);
 			
 				// try again
 				res.redirect('/fetch_resource');
