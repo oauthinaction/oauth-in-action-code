@@ -22,41 +22,45 @@ var resource = {
 	"description": "This data has been protected by OAuth 2.0"
 };
 
-app.post("/resource", function(req, res){
-
+var getAccessToken = function(req, res, next) {
 	// check the auth header first
 	var auth = req.headers['authorization'];
 	var inToken = null;
 	if (auth && auth.toLowerCase().indexOf('bearer') == 0) {
 		inToken = auth.slice('bearer '.length);
-	}
-	if (!inToken) {
+	} else if (req.body && req.body.access_token) {
 		// not in the header, check in the form body
-		if (req.body && req.body.access_token) {
-			inToken = req.body.access_token;
-		}
-	}
-	if (!inToken) {
-		// not in the header or body, check the parameter
-		var url_parts = url.parse(req.url, true);
-		if (url_parts.query && url_parts.query.access_token) {
-			inToken = url_parts.query.access_token
-		}
+		inToken = req.body.access_token;
+	} else if (req.query && req.query.access_token) {
+		inToken = req.query.access_token
 	}
 	
 	console.log('Incoming token: %s', inToken);
 	
-	nosql.all(function(token) {
-		return (token.access_token == inToken);
-	}, function(err, tokens) {
-		if (tokens.length == 1) {
+	nosql.one(function(token) {
+		if (token.access_token == inToken) {
+			return token;	
+		}
+	}, function(err, token) {
+		if (token) {
 			console.log("We found a matching token: %s", inToken);
-			res.json(resource);
 		} else {
 			console.log('No matching token was found.');
-			res.status(401).end();
 		}
+		req.access_token = token;
+		next();
+		return;
 	});
+	
+};
+
+app.post("/resource", getAccessToken, function(req, res){
+
+	if (req.access_token) {
+		res.json(resource);
+	} else {
+		res.status(401).end();
+	}
 	
 });
 

@@ -170,6 +170,7 @@ app.get('/fetch_resource', function(req, res) {
 	
 	var headers = {
 		'Authorization': 'Bearer ' + access_token
+		'Content-Type': 'application/x-www-form-urlencoded'
 	};
 	
 	var resource = request('POST', protectedResource,
