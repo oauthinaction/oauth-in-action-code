@@ -96,7 +96,21 @@ app.delete('/words', getAccessToken, requireAccessToken, function(req, res) {
 	}
 });
 
-/*
+app.get('/produce', getAccessToken, requireAccessToken, function(req, res) {
+	var produce = {fruit: [], veggies: [], meats: []};
+	if (__.contains(req.access_token.scope, 'fruit')) {
+		produce.fruit = ['apple', 'banana', 'kiwi'];
+	}
+	if (__.contains(req.access_token.scope, 'veggies')) {
+		produce.veggies = ['lettuce', 'onion', 'potato'];
+	}
+	if (__.contains(req.access_token.scope, 'meats')) {
+		produce.meats = ['bacon', 'steak', 'chicken breast'];
+	}
+	console.log('Sending produce: ', produce);
+	res.json(produce);
+});
+
 app.post("/resource", getAccessToken, function(req, res){
 
 	if (req.access_token) {
@@ -106,7 +120,6 @@ app.post("/resource", getAccessToken, function(req, res){
 	}
 	
 });
-*/
 
 var server = app.listen(9002, 'localhost', function () {
   var host = server.address().address;

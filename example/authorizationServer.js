@@ -29,7 +29,7 @@ var clients = [
 		"client_id": "oauth-client-1",
 		"client_secret": "oauth-client-secret-1",
 		"redirect_uri": "http://localhost:9000/callback",
-		"scope": ["read", "write", "delete"]
+		"scope": ["fruit", "veggies", "meats"]
 	},
 	{
 		"client_id": "oauth-client-2",
@@ -105,7 +105,6 @@ app.post('/approve', function(req, res) {
 		
 			var scope = __.filter(__.keys(req.body), function(s) { return __.string.startsWith(s, 'scope_'); })
 				.map(function(s) { return s.slice('scope_'.length); });
-				console.log(scope);
 			var client = getClient(query.client_id);
 			if (__.difference(scope, client.scope).length > 0) {
 				// client asked for a scope it couldn't have
@@ -162,7 +161,7 @@ app.post("/token", function(req, res){
 	if (req.body.client_id) {
 		if (clientId) {
 			// if we've already seen the client's credentials in the authorization header, this is an error
-			console.logt('Client attempted to authenticate with multiple methods');
+			console.log('Client attempted to authenticate with multiple methods');
 			res.status(401).json({error: 'invalid_client'});
 			return;
 		}
