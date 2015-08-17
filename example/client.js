@@ -24,12 +24,14 @@ var client = {
 	"client_id": "oauth-client-1",
 	"client_secret": "oauth-client-secret-1",
 	"redirect_uri": "http://localhost:9000/callback",
-	"scope": "fruit veggies meats"
+	"scope": "movies foods music"
 };
 
 var protectedResource = 'http://localhost:9002/resource';
-var wordApi = 'http://localhost:9002/words'
-var produceApi = 'http://localhost:9002/produce'
+var wordApi = 'http://localhost:9002/words';
+var produceApi = 'http://localhost:9002/produce';
+var favoritesApi = 'http://localhost:9002/favorites';
+
 var state = null;
 
 var access_token = null;
@@ -297,6 +299,29 @@ app.get('/produce', function(req, res) {
 	}
 	
 });
+
+app.get('/favorites', function(req, res) {
+	var headers = {
+		'Authorization': 'Bearer ' + access_token,
+		'Content-Type': 'application/x-www-form-urlencoded'
+	};
+	
+	var resource = request('GET', favoritesApi,
+		{headers: headers}
+	);
+	
+	if (resource.statusCode >= 200 && resource.statusCode < 300) {
+		var body = JSON.parse(resource.getBody());
+		console.log('Got data: ', body);
+		res.render('favorites', {scope: scope, data: body});
+		return;
+	} else {
+		res.render('favorites', {scope: scope, data: {user: '', favorites: {movies: [], foods: [], music: []}}});
+		return;
+	}
+	
+});
+
 
 app.use('/', express.static('files/client'));
 

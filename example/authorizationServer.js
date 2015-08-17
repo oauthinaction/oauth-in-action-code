@@ -29,7 +29,7 @@ var clients = [
 		"client_id": "oauth-client-1",
 		"client_secret": "oauth-client-secret-1",
 		"redirect_uri": "http://localhost:9000/callback",
-		"scope": ["fruit", "veggies", "meats"]
+		"scope": ["movies", "foods", "music"]
 	},
 	{
 		"client_id": "oauth-client-2",
@@ -102,6 +102,8 @@ app.post('/approve', function(req, res) {
 		if (query.response_type == 'code') {
 			// user approved access
 			var code = randomstring.generate(8);
+			
+			var user = req.body.user;
 		
 			var scope = __.filter(__.keys(req.body), function(s) { return __.string.startsWith(s, 'scope_'); })
 				.map(function(s) { return s.slice('scope_'.length); });
@@ -117,7 +119,7 @@ app.post('/approve', function(req, res) {
 			}
 
 			// save the code and request for later
-			codes[code] = { authorizationEndpointRequest: query, scope: scope };
+			codes[code] = { authorizationEndpointRequest: query, scope: scope, user: user };
 		
 			var urlParsed =url.parse(query.redirect_uri);
 			delete urlParsed.search; // this is a weird behavior of the URL library
@@ -193,8 +195,8 @@ app.post("/token", function(req, res){
 				var access_token = randomstring.generate();
 				var refresh_token = randomstring.generate();
 
-				nosql.insert({ access_token: access_token, client_id: clientId, scope: code.scope });
-				nosql.insert({ refresh_token: refresh_token, client_id: clientId, scope: code.scope });
+				nosql.insert({ access_token: access_token, client_id: clientId, scope: code.scope, user: code.user });
+				nosql.insert({ refresh_token: refresh_token, client_id: clientId, scope: code.scope, user: code.user });
 
 				console.log('Issuing access token %s and refresh token %s with scope %s for code %s', access_token, refresh_token, code.scope, req.body.code);
 

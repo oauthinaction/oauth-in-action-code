@@ -111,6 +111,29 @@ app.get('/produce', getAccessToken, requireAccessToken, function(req, res) {
 	res.json(produce);
 });
 
+var aliceFavorites = {
+	'movies': ['The Multidmensional Vector', 'Space Fights', 'Jewelry Boss'],
+	'foods': ['bacon', 'pizza', 'bacon pizza'],
+	'music': ['techno', 'industrial', 'alternative']
+};
+
+var bobFavories = {
+	'movies': ['An Unrequited Love', 'Several Shades of Turquoise', 'Think Of The Children'],
+	'foods': ['bacon', 'kale', 'gravel'],
+	'music': ['baroque', 'ukulele', 'baroque ukulele']
+};
+
+app.get('/favorites', getAccessToken, requireAccessToken, function(req, res) {
+	if (req.access_token.user == 'alice') {
+		res.json({user: 'Alice', favorites: aliceFavorites});
+	} else if (req.access_token.user == 'bob') {
+		res.json({user: 'Bob', favorites: bobFavorites});
+	} else {
+		var unknown = {user: 'Unknown', favorites: {movies: [], foods: [], music: []}};
+		res.json(unknown);
+	}
+});
+
 app.post("/resource", getAccessToken, function(req, res){
 
 	if (req.access_token) {
