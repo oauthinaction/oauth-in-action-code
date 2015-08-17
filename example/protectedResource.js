@@ -54,6 +54,34 @@ var getAccessToken = function(req, res, next) {
 	
 };
 
+var requireAccessToken = function(req, res, next) {
+	if (req.access_token) {
+		next();
+	} else {
+		res.status(401).end();
+	}
+};
+
+
+var savedWords = [];
+
+app.get('/words', getAccessToken, requireAccessToken, function(req, res) {
+	res.json({words: savedWords.join(' '), timestamp: Date.now()});
+});
+
+app.post('/words', getAccessToken, requireAccessToken, function(req, res) {
+	if (req.body.word) {
+		savedWords.push(req.body.word);
+	}
+	res.status(201).end();
+});
+
+app.delete('/words', getAccessToken, requireAccessToken, function(req, res) {
+	savedWords.pop();
+	res.status(201).end();
+});
+
+/*
 app.post("/resource", getAccessToken, function(req, res){
 
 	if (req.access_token) {
@@ -63,6 +91,7 @@ app.post("/resource", getAccessToken, function(req, res){
 	}
 	
 });
+*/
 
 var server = app.listen(9002, 'localhost', function () {
   var host = server.address().address;

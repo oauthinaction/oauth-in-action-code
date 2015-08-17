@@ -24,11 +24,11 @@ var client = {
 	"client_id": "oauth-client-1",
 	"client_secret": "oauth-client-secret-1",
 	"redirect_uri": "http://localhost:9000/callback",
-	"scope": "foo"
+	"scope": "read write delete"
 };
 
 var protectedResource = 'http://localhost:9002/resource';
-
+var wordApi = 'http://localhost:9002/words'
 var state = null;
 
 var access_token = null;
@@ -116,50 +116,54 @@ app.get("/callback", function(req, res){
 	}
 });
 
+var refreshAccessToken = function(req, res) {
+	var form_data = qs.stringify({
+				grant_type: 'refresh_token',
+				refresh_token: refresh_token,
+				client_id: client.client_id,
+				client_secret: client.client_secret,
+				redirect_uri: client.redirect_uri
+			});
+	var headers = {
+		'Content-Type': 'application/x-www-form-urlencoded'
+	};
+	console.log('Refreshing token %s', refresh_token);
+	var tokRes = request('POST', authServer.tokenEndpoint, 
+		{	
+			body: form_data,
+			headers: headers
+		}
+	);
+	if (tokRes.statusCode >= 200 && tokRes.statusCode < 300) {
+		var body = JSON.parse(tokRes.getBody());
+
+		access_token = body.access_token;
+		console.log('Got access token: %s', access_token);
+		if (body.refresh_token) {
+			refresh_token = body.refresh_token;
+			console.log('Got refresh token: %s', refresh_token);
+		}
+		scope = body.scope;
+		console.log('Got scope: %s', scope);
+	
+		// try again
+		res.redirect('/fetch_resource');
+		return;
+	} else {
+		console.log('No refresh token, asking the user to get a new access token');
+		// tell the user to get a new access token
+		res.redirect('/authorize');
+		return;
+	}
+};
+
 app.get('/fetch_resource', function(req, res) {
 
 	if (!access_token) {
 		if (refresh_token) {
 			// try to refresh and start again
-			var form_data = qs.stringify({
-						grant_type: 'refresh_token',
-						refresh_token: refresh_token,
-						client_id: client.client_id,
-						client_secret: client.client_secret,
-						redirect_uri: client.redirect_uri
-					});
-			var headers = {
-				'Content-Type': 'application/x-www-form-urlencoded'
-			};
-			console.log('Refreshing token %s', refresh_token);
-			var tokRes = request('POST', authServer.tokenEndpoint, 
-				{	
-					body: form_data,
-					headers: headers
-				}
-			);
-			if (tokRes.statusCode >= 200 && tokRes.statusCode < 300) {
-				var body = JSON.parse(tokRes.getBody());
-	
-				access_token = body.access_token;
-				console.log('Got access token: %s', access_token);
-				if (body.refresh_token) {
-					refresh_token = body.refresh_token;
-					console.log('Got refresh token: %s', refresh_token);
-				}
-				scope = body.scope;
-				console.log('Got scope: %s', scope);
-			
-				// try again
-				res.redirect('/fetch_resource');
-				return;
-			} else {
-				console.log('No refresh token, asking the user to get a new access token');
-				// tell the user to get a new access token
-				res.redirect('/authorize');
-				return;
-			}
-			
+			refreshAccessToken(req, res);
+			return;
 		} else {
 			res.render('error', {error: 'Missing access token.'});
 			return;
@@ -169,7 +173,7 @@ app.get('/fetch_resource', function(req, res) {
 	console.log('Making request with access token %s', access_token);
 	
 	var headers = {
-		'Authorization': 'Bearer ' + access_token
+		'Authorization': 'Bearer ' + access_token,
 		'Content-Type': 'application/x-www-form-urlencoded'
 	};
 	
@@ -185,48 +189,88 @@ app.get('/fetch_resource', function(req, res) {
 		access_token = null;
 		if (refresh_token) {
 			// try to refresh and start again
-			var form_data = qs.stringify({
-						grant_type: 'refresh_token',
-						refresh_token: refresh_token,
-						client_id: client.client_id,
-						client_secret: client.client_secret,
-						redirect_uri: client.redirect_uri
-					});
-			var headers = {
-				'Content-Type': 'application/x-www-form-urlencoded'
-			};
-			console.log('Refreshing token %s', refresh_token);
-			var tokRes = request('POST', authServer.tokenEndpoint, 
-				{	
-					body: form_data,
-					headers: headers
-				}
-			);
-			if (tokRes.statusCode >= 200 && tokRes.statusCode < 300) {
-				var body = JSON.parse(tokRes.getBody());
-	
-				access_token = body.access_token;
-				console.log('Got access token: %s', access_token);
-				if (body.refresh_token) {
-					refresh_token = body.refresh_token;
-				}
-				scope = body.scope;
-				console.log('Got scope: %s', scope);
-			
-				// try again
-				res.redirect('/fetch_resource');
-				return;
-			} else {
-				console.log('No refresh token, asking the user to get a new access token');
-				// tell the user to get a new access token
-				res.redirect('/authorize');
-				return;
-			}
-			
+			refreshAccessToken(req, res);
+			return;
 		} else {
 			res.render('error', {error: 'Server returned response code: ' + resource.statusCode});
 			return;
 		}
+	}
+	
+	
+});
+
+app.get('/words', function (req, res) {
+
+	res.render('words', {words: '', timestamp: 0, result: null});
+	
+});
+
+app.get('/get_words', function (req, res) {
+
+	var headers = {
+		'Authorization': 'Bearer ' + access_token,
+		'Content-Type': 'application/x-www-form-urlencoded'
+	};
+	
+	var resource = request('GET', wordApi,
+		{headers: headers}
+	);
+	
+	if (resource.statusCode >= 200 && resource.statusCode < 300) {
+		var body = JSON.parse(resource.getBody());
+		res.render('words', {words: body.words, timestamp: body.timestamp, result: 'get'});
+		return;
+	} else {
+		res.render('words', {words: '', timestamp: 0, result: 'noget'});
+		return;
+	}
+	
+	
+	
+});
+
+app.get('/add_word', function (req, res) {
+	
+	var headers = {
+		'Authorization': 'Bearer ' + access_token,
+		'Content-Type': 'application/x-www-form-urlencoded'
+	};
+	
+	var form_body = qs.stringify({word: req.query.word});
+	
+	var resource = request('POST', wordApi,
+		{headers: headers, body: form_body}
+	);
+	
+	if (resource.statusCode >= 200 && resource.statusCode < 300) {
+		res.render('words', {words: '', timestamp: 0, result: 'add'});
+		return;
+	} else {
+		res.render('words', {words: '', timestamp: 0, result: 'noadd'});
+		return;
+	}
+	
+
+});
+
+app.get('/delete_word', function (req, res) {
+
+	var headers = {
+		'Authorization': 'Bearer ' + access_token,
+		'Content-Type': 'application/x-www-form-urlencoded'
+	};
+	
+	var resource = request('DELETE', wordApi,
+		{headers: headers}
+	);
+	
+	if (resource.statusCode >= 200 && resource.statusCode < 300) {
+		res.render('words', {words: '', timestamp: 0, result: 'rm'});
+		return;
+	} else {
+		res.render('words', {words: '', timestamp: 0, result: 'norm'});
+		return;
 	}
 	
 	
