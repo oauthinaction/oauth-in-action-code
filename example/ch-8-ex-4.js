@@ -68,6 +68,7 @@ app.get("/authorize", function(req, res){
 		var scope = req.query.scope ? req.query.scope.split(' ') : undefined;
 		if (__.difference(scope, client.scope).length > 0) {
 			console.log('Invalid scope provided %s', scope);
+			res.status(400);
 			res.render('error', {error: 'invalid_scope'});
 			return;
 		}
