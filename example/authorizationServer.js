@@ -7,6 +7,7 @@ var nosql = require('nosql').load('database.nosql');
 var querystring = require('querystring');
 var __ = require('underscore');
 __.string = require('underscore.string');
+var base64url = require('base64url');
 
 var app = express();
 
@@ -192,8 +193,22 @@ app.post("/token", function(req, res){
 		if (code) {
 			delete codes[req.body.code]; // burn our code, it's been used
 			if (code.authorizationEndpointRequest.client_id == clientId) {
-				var access_token = randomstring.generate();
+				//var access_token = randomstring.generate();
+				var header = { 'typ': 'JWT', 'alg': 'none'};
+				
 				var refresh_token = randomstring.generate();
+				var payload = {};
+				payload.iss = 'http://localhost:9001/';
+				payload.sub = code.user;
+				payload.iat = Math.floor(Date.now() / 1000);
+				payload.exp = Math.floor(Date.now() / 1000) + (5 * 60);
+				payload.jti = randomstring.generate();
+				console.log(payload);
+				
+				var encodedHeader = base64url.encode(JSON.stringify(header));
+				var encodedPayload = base64url.encode(JSON.stringify(payload));
+				
+				var access_token = encodedHeader + '.' + encodedPayload + '.';
 
 				nosql.insert({ access_token: access_token, client_id: clientId, scope: code.scope, user: code.user });
 				nosql.insert({ refresh_token: refresh_token, client_id: clientId, scope: code.scope, user: code.user });

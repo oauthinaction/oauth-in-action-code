@@ -9,6 +9,7 @@
 	"consolidate": "^0.13.1",
 	"qs": "^4.0.0",
 	"randomstring": "^1.0.7",
-	"nosql": "^3.0.3"
+	"nosql": "^3.0.3",
+	"base64url": "^1.0.4"
   }
 }
