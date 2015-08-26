@@ -5,6 +5,8 @@ var randomstring = require("randomstring");
 var cons = require('consolidate');
 var nosql = require('nosql').load('database.nosql');
 var __ = require('underscore');
+var base64url = require('base64url');
+var jose = require('./lib/jsrsasign.js');
 
 var app = express();
 
@@ -22,6 +24,8 @@ var resource = {
 	"description": "This data has been protected by OAuth 2.0"
 };
 
+var sharedTokenSecret = "shared token secret!";
+
 var getAccessToken = function(req, res, next) {
 	// check the auth header first
 	var auth = req.headers['authorization'];
@@ -36,7 +40,7 @@ var getAccessToken = function(req, res, next) {
 	}
 	
 	console.log('Incoming token: %s', inToken);
-	
+	/*
 	nosql.one(function(token) {
 		if (token.access_token == inToken) {
 			return token;	
@@ -51,6 +55,40 @@ var getAccessToken = function(req, res, next) {
 		next();
 		return;
 	});
+	*/
+	var isValid = jose.jws.JWS.verify(inToken, new Buffer(sharedTokenSecret).toString('hex'), ['HS256']);
+	if (isValid) {
+		console.log('Signature validated.');
+		var tokenParts = inToken.split('.');
+		var payload = JSON.parse(base64url.decode(tokenParts[1]));
+		console.log('Payload', payload);
+		if (payload.iss == 'http://localhost:9001/') {
+			console.log('issuer OK');
+			if ((Array.isArray(payload.aud) && _.contains(payload.aud, 'http://localhost:9002/')) || 
+				payload.aud == 'http://localhost:9002/') {
+				console.log('Audience OK');
+				
+				var now = Math.floor(Date.now() / 1000);
+				
+				if (payload.iat <= now) {
+					console.log('issued-at OK');
+					if (payload.exp >= now) {
+						console.log('expiration OK');
+						
+						console.log('Token valid!');
+		
+						req.access_token = payload;
+						
+					}
+				}
+			}
+			
+		}
+			
+
+	}
+	next();
+	return;
 	
 };
 

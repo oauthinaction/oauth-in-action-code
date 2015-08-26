@@ -41,6 +41,8 @@ var clients = [
 	}
 ];
 
+var sharedTokenSecret = "shared token secret!";
+
 var codes = {};
 
 var requests = {};
@@ -195,21 +197,25 @@ app.post("/token", function(req, res){
 			delete codes[req.body.code]; // burn our code, it's been used
 			if (code.authorizationEndpointRequest.client_id == clientId) {
 				//var access_token = randomstring.generate();
-				var header = { 'typ': 'JWT', 'alg': 'none'};
+				var header = { 'typ': 'JWT', 'alg': 'HS256'};
 				
 				var refresh_token = randomstring.generate();
 				var payload = {};
 				payload.iss = 'http://localhost:9001/';
 				payload.sub = code.user;
+				payload.aud = 'http://localhost:9002/';
 				payload.iat = Math.floor(Date.now() / 1000);
 				payload.exp = Math.floor(Date.now() / 1000) + (5 * 60);
 				payload.jti = randomstring.generate();
 				console.log(payload);
 				
-				var encodedHeader = base64url.encode(JSON.stringify(header));
-				var encodedPayload = base64url.encode(JSON.stringify(payload));
+				var stringHeader = JSON.stringify(header);
+				var stringPayload = JSON.stringify(payload);
+				//var encodedHeader = base64url.encode(JSON.stringify(header));
+				//var encodedPayload = base64url.encode(JSON.stringify(payload));
 				
-				var access_token = encodedHeader + '.' + encodedPayload + '.';
+				//var access_token = encodedHeader + '.' + encodedPayload + '.';
+				var access_token = jose.jws.JWS.sign('HS256', stringHeader, stringPayload, new Buffer(sharedTokenSecret).toString('hex'));
 
 				nosql.insert({ access_token: access_token, client_id: clientId, scope: code.scope, user: code.user });
 				nosql.insert({ refresh_token: refresh_token, client_id: clientId, scope: code.scope, user: code.user });
