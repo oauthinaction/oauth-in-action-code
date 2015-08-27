@@ -26,6 +26,14 @@ var resource = {
 
 var sharedTokenSecret = "shared token secret!";
 
+var rsaKey = {
+  "alg": "RS256",
+  "e": "AQAB",
+  "n": "p8eP5gL1H_H9UNzCuQS-vNRVz3NWxZTHYk1tG9VpkfFjWNKG3MFTNZJ1l5g_COMm2_2i_YhQNH8MJ_nQ4exKMXrWJB4tyVZohovUxfw-eLgu1XQ8oYcVYW8ym6Um-BkqwwWL6CXZ70X81YyIMrnsGTyTV6M8gBPun8g2L8KbDbXR1lDfOOWiZ2ss1CRLrmNM-GRp3Gj-ECG7_3Nx9n_s5to2ZtwJ1GS1maGjrSZ9GRAYLrHhndrL_8ie_9DS2T-ML7QNQtNkg2RvLv4f0dpjRYI23djxVtAylYK4oiT_uEMgSkc4dxwKwGuBxSO0g9JOobgfy0--FUHHYtRi0dOFZw",
+  "kty": "RSA",
+  "kid": "authserver"
+};
+
 var getAccessToken = function(req, res, next) {
 	// check the auth header first
 	var auth = req.headers['authorization'];
@@ -56,8 +64,10 @@ var getAccessToken = function(req, res, next) {
 		return;
 	});
 	*/
-	var isValid = jose.jws.JWS.verify(inToken, new Buffer(sharedTokenSecret).toString('hex'), ['HS256']);
-	if (isValid) {
+	//var signatureValid = jose.jws.JWS.verify(inToken, new Buffer(sharedTokenSecret).toString('hex'), ['HS256']);
+	var pubKey = jose.KEYUTIL.getKey(rsaKey);
+	var signatureValid = jose.jws.JWS.verify(inToken, pubKey, ['RS256']);
+	if (signatureValid) {
 		console.log('Signature validated.');
 		var tokenParts = inToken.split('.');
 		var payload = JSON.parse(base64url.decode(tokenParts[1]));

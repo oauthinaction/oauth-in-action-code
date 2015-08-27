@@ -43,6 +43,15 @@ var clients = [
 
 var sharedTokenSecret = "shared token secret!";
 
+var rsaKey = {
+  "alg": "RS256",
+  "d": "ZXFizvaQ0RzWRbMExStaS_-yVnjtSQ9YslYQF1kkuIoTwFuiEQ2OywBfuyXhTvVQxIiJqPNnUyZR6kXAhyj__wS_Px1EH8zv7BHVt1N5TjJGlubt1dhAFCZQmgz0D-PfmATdf6KLL4HIijGrE8iYOPYIPF_FL8ddaxx5rsziRRnkRMX_fIHxuSQVCe401hSS3QBZOgwVdWEb1JuODT7KUk7xPpMTw5RYCeUoCYTRQ_KO8_NQMURi3GLvbgQGQgk7fmDcug3MwutmWbpe58GoSCkmExUS0U-KEkHtFiC8L6fN2jXh1whPeRCa9eoIK8nsIY05gnLKxXTn5-aPQzSy6Q",
+  "e": "AQAB",
+  "n": "p8eP5gL1H_H9UNzCuQS-vNRVz3NWxZTHYk1tG9VpkfFjWNKG3MFTNZJ1l5g_COMm2_2i_YhQNH8MJ_nQ4exKMXrWJB4tyVZohovUxfw-eLgu1XQ8oYcVYW8ym6Um-BkqwwWL6CXZ70X81YyIMrnsGTyTV6M8gBPun8g2L8KbDbXR1lDfOOWiZ2ss1CRLrmNM-GRp3Gj-ECG7_3Nx9n_s5to2ZtwJ1GS1maGjrSZ9GRAYLrHhndrL_8ie_9DS2T-ML7QNQtNkg2RvLv4f0dpjRYI23djxVtAylYK4oiT_uEMgSkc4dxwKwGuBxSO0g9JOobgfy0--FUHHYtRi0dOFZw",
+  "kty": "RSA",
+  "kid": "authserver"
+};
+
 var codes = {};
 
 var requests = {};
@@ -197,7 +206,7 @@ app.post("/token", function(req, res){
 			delete codes[req.body.code]; // burn our code, it's been used
 			if (code.authorizationEndpointRequest.client_id == clientId) {
 				//var access_token = randomstring.generate();
-				var header = { 'typ': 'JWT', 'alg': 'HS256'};
+				var header = { 'typ': 'JWT', 'alg': 'RS256', 'kid': 'authserver'};
 				
 				var refresh_token = randomstring.generate();
 				var payload = {};
@@ -215,7 +224,9 @@ app.post("/token", function(req, res){
 				//var encodedPayload = base64url.encode(JSON.stringify(payload));
 				
 				//var access_token = encodedHeader + '.' + encodedPayload + '.';
-				var access_token = jose.jws.JWS.sign('HS256', stringHeader, stringPayload, new Buffer(sharedTokenSecret).toString('hex'));
+				//var access_token = jose.jws.JWS.sign('HS256', stringHeader, stringPayload, new Buffer(sharedTokenSecret).toString('hex'));
+				var privateKey = jose.KEYUTIL.getKey(rsaKey);
+				var access_token = jose.jws.JWS.sign('RS256', stringHeader, stringPayload, privateKey);
 
 				nosql.insert({ access_token: access_token, client_id: clientId, scope: code.scope, user: code.user });
 				nosql.insert({ refresh_token: refresh_token, client_id: clientId, scope: code.scope, user: code.user });
