@@ -4,6 +4,9 @@ var bodyParser = require('body-parser');
 var randomstring = require("randomstring");
 var cons = require('consolidate');
 var nosql = require('nosql').load('database.nosql');
+var qs = require("qs");
+var querystring = require('querystring');
+var request = require("sync-request");
 var __ = require('underscore');
 var base64url = require('base64url');
 var jose = require('./lib/jsrsasign.js');
@@ -33,6 +36,16 @@ var rsaKey = {
   "kty": "RSA",
   "kid": "authserver"
 };
+
+var protectedResources = {
+		"resource_id": "protected-resource-1",
+		"resource_secret": "protected-resource-secret-1"
+};
+
+var authServer = {
+	introspectionEndpoint: 'http://localhost:9001/introspect'
+};
+
 
 var getAccessToken = function(req, res, next) {
 	// check the auth header first
@@ -64,6 +77,7 @@ var getAccessToken = function(req, res, next) {
 		return;
 	});
 	*/
+	/*
 	//var signatureValid = jose.jws.JWS.verify(inToken, new Buffer(sharedTokenSecret).toString('hex'), ['HS256']);
 	var pubKey = jose.KEYUTIL.getKey(rsaKey);
 	var signatureValid = jose.jws.JWS.verify(inToken, pubKey, ['RS256']);
@@ -96,6 +110,34 @@ var getAccessToken = function(req, res, next) {
 		}
 			
 
+	}
+	next();
+	return;
+	*/
+	
+	var form_data = qs.stringify({
+		token: inToken
+	});
+	var headers = {
+		'Content-Type': 'application/x-www-form-urlencoded',
+		'Authorization': new Buffer(querystring.escape(protectedResources.resource_id) + ':' + querystring.escape(protectedResources.resource_secret)).toString('base64')
+	};
+
+	var tokRes = request('POST', authServer.introspectionEndpoint, 
+		{	
+			body: form_data,
+			headers: headers
+		}
+	);
+	
+	if (tokRes.statusCode >= 200 && tokRes.statusCode < 300) {
+		var body = JSON.parse(tokRes.getBody());
+	
+		console.log('Got introspection response', body);
+		var active = body.active;
+		if (active) {
+			req.access_token = body;
+		}
 	}
 	next();
 	return;
