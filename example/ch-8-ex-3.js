@@ -191,8 +191,6 @@ app.post("/token", function(req, res){
 		if (code) {
 			delete codes[req.body.code]; // burn our code, it's been used
 
-			console.log("body redirect %s", req.body.redirect_uri);
-
 			if (code.authorizationEndpointRequest.redirect_uri) {
 				if (code.authorizationEndpointRequest.redirect_uri != req.body.redirect_uri) {
 					console.log('redirect mismatch, expected %s', code.authorizationEndpointRequest.redirect_uri);
