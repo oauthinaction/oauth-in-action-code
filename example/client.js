@@ -16,7 +16,8 @@ app.set('views', 'files/client');
 // authorization server information
 var authServer = {
 	authorizationEndpoint: 'http://localhost:9001/authorize',
-	tokenEndpoint: 'http://localhost:9001/token'
+	tokenEndpoint: 'http://localhost:9001/token',
+	revocationEndpoint: 'http://localhost:9001/revoke'
 };
 
 // client information
@@ -46,6 +47,7 @@ app.get('/authorize', function(req, res){
 	
 	access_token = null;
 	refresh_token = null;
+	scope = null;
 	state = randomstring.generate();
 	
 	var authorizeUrl = url.parse(authServer.authorizationEndpoint, true);
@@ -322,6 +324,38 @@ app.get('/favorites', function(req, res) {
 	
 });
 
+app.get('/revoke', function(req, res) {
+	res.render('revoke', {access_token: access_token, refresh_token: refresh_token, scope: scope});
+});
+
+app.post('/revoke', function(req, res) {
+	var form_data = qs.stringify({
+		token: access_token
+	});
+	var headers = {
+		'Content-Type': 'application/x-www-form-urlencoded',
+ 		'Authorization': 'Basic ' + new Buffer(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
+	};
+	console.log('Revoking token %s', access_token);
+	var tokRes = request('POST', authServer.revocationEndpoint, 
+		{
+			body: form_data,
+			headers: headers
+		}
+	);
+	
+	access_token = null;
+	refresh_token = null;
+	scope = null;
+	
+	if (tokRes.statusCode >= 200 && tokRes.statusCode < 300) {
+		res.render('revoke', {access_token: access_token, refresh_token: refresh_token, scope: scope});
+		return;
+	} else {
+		res.render('error', {error: tokRes.statusCode});
+		return;
+	}
+});
 
 app.use('/', express.static('files/client'));
 

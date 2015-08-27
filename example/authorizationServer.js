@@ -287,6 +287,54 @@ app.post("/token", function(req, res){
 	}
 });
 
+app.post('/revoke', function(req, res) {
+	var auth = req.headers['authorization'];
+	if (auth) {
+		// check the auth header
+		var clientCredentials = new Buffer(auth.slice('basic '.length), 'base64').toString().split(':');
+		var clientId = querystring.unescape(clientCredentials[0]);
+		var clientSecret = querystring.unescape(clientCredentials[1]);
+	}
+	
+	// otherwise, check the post body
+	if (req.body.client_id) {
+		if (clientId) {
+			// if we've already seen the client's credentials in the authorization header, this is an error
+			console.log('Client attempted to authenticate with multiple methods');
+			res.status(401).json({error: 'invalid_client'});
+			return;
+		}
+		
+		var clientId = req.body.client_id;
+		var clientSecret = req.body.client_secret;
+	}
+	
+	var client = getClient(clientId);
+	if (!client) {
+		console.log('Unknown client %s', clientId);
+		res.status(401).json({error: 'invalid_client'});
+		return;
+	}
+	
+	if (client.client_secret != clientSecret) {
+		console.log('Mismatched client secret, expected %s got %s', client.client_secret, clientSecret);
+		res.status(401).json({error: 'invalid_client'});
+		return;
+	}
+	
+	var inToken = req.body.token;
+	nosql.remove(function(token) {
+		if (token.access_token == inToken && token.client_id == clientId) {
+			return true;	
+		}
+	}, function(err, count) {
+		console.log("Removed %s tokens", count);
+		res.status(201).end();
+		return;
+	});
+	
+});
+
 app.post('/introspect', function(req, res) {
 	var auth = req.headers['authorization'];
 	var resourceCredentials = new Buffer(auth.slice('basic '.length), 'base64').toString().split(':');
