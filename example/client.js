@@ -17,16 +17,21 @@ app.set('views', 'files/client');
 var authServer = {
 	authorizationEndpoint: 'http://localhost:9001/authorize',
 	tokenEndpoint: 'http://localhost:9001/token',
-	revocationEndpoint: 'http://localhost:9001/revoke'
+	revocationEndpoint: 'http://localhost:9001/revoke',
+	registrationEndpoint: 'http://localhost:9001/register'
 };
 
 // client information
+/*
 var client = {
 	"client_id": "oauth-client-1",
 	"client_secret": "oauth-client-secret-1",
 	"redirect_uri": "http://localhost:9000/callback",
 	"scope": "movies foods music"
 };
+*/
+
+var client = {};
 
 var protectedResource = 'http://localhost:9002/resource';
 var wordApi = 'http://localhost:9002/words';
@@ -44,6 +49,14 @@ app.get('/', function (req, res) {
 });
 
 app.get('/authorize', function(req, res){
+
+	if (!client.client_id) {
+		registerClient();
+		if (!client.client_id) {
+			res.render('error', {error: 'Unable to register client.'});
+			return;
+		}
+	}
 	
 	access_token = null;
 	refresh_token = null;
@@ -55,13 +68,44 @@ app.get('/authorize', function(req, res){
 	authorizeUrl.query.response_type = 'code';
 	authorizeUrl.query.scope = client.scope;
 	authorizeUrl.query.client_id = client.client_id;
-	authorizeUrl.query.redirect_uri = client.redirect_uri
+	authorizeUrl.query.redirect_uri = client.redirect_uris[0];
 	authorizeUrl.query.state = state;
 	
 	console.log("redirect", url.format(authorizeUrl));
 	res.redirect(url.format(authorizeUrl));
 });
 
+var registerClient = function() {
+	
+	var template = {
+		client_name: 'OAuth in Action Dynamic Test Client',
+		client_uri: 'http://localhost:9000/',
+		redirect_uris: ['http://localhost:9000/callback'],
+		grant_types: ['authorization_code'],
+		response_types: ['code'],
+		token_endpoint_auth_method: 'secret_basic'
+	};
+
+	var headers = {
+		'Content-Type': 'application/json',
+		'Accept': 'application/json'
+	};
+	
+	var regRes = request('POST', authServer.registrationEndpoint, 
+		{
+			body: JSON.stringify(template),
+			headers: headers
+		}
+	);
+	
+	if (regRes.statusCode == 201) {
+		var body = JSON.parse(regRes.getBody());
+		console.log("Got registered client", body);
+		if (body.client_id) {
+			client = body;
+		}
+	}
+};
 
 app.get("/callback", function(req, res){
 	
