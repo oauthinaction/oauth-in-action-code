@@ -330,7 +330,7 @@ app.post('/revoke', function(req, res) {
 		}
 	}, function(err, count) {
 		console.log("Removed %s tokens", count);
-		res.status(201).end();
+		res.status(204).end();
 		return;
 	});
 	
@@ -387,8 +387,7 @@ app.post('/introspect', function(req, res) {
 	
 });
 
-app.post('/register', function (req, res){
-
+var checkClientMetadata = function (req) {
 	var reg = {};
 
 	if (!req.body.token_endpoint_auth_method) {
@@ -459,6 +458,16 @@ app.post('/register', function (req, res){
 		reg.logo_uri = req.body.logo_uri;
 	}
 	
+	return reg;
+};
+
+app.post('/register', function (req, res){
+
+	var reg = checkClientMetadata(req);
+	if (!reg) {
+		return;
+	}
+
 	reg.client_id = randomstring.generate();
 	if (__.contains(['client_secret_basic', 'client_secret_post']), reg.token_endpoint_auth_method) {
 		reg.client_secret = randomstring.generate();
@@ -467,10 +476,83 @@ app.post('/register', function (req, res){
 	reg.client_id_created_at = Math.floor(Date.now() / 1000);
 	reg.client_secret_expires_at = 0;
 
+	reg.registration_access_token = randomString.generate();
+	reg.registration_client_uri = 'http://localhost:9001/register/' + reg.client_id;
+
 	clients.push(reg);
 	
 	res.status(201).json(reg);
 	return;
+});
+
+var validateConfigurationEndpointRequest = function (req, res, next) {
+	var clientId = req.params.clientId;
+	var client = getClient(clientId);
+	if (!client) {
+		res.status(404).end();
+		return;
+	}
+
+	var auth = req.headers['authorization'];
+	if (auth && auth.toLowerCase().indexOf('bearer') == 0) {
+		var regToken = auth.slice('bearer '.length);
+
+		if (regToken == client.registration_access_token) {
+			req.client = client;
+			next();
+			return;
+		} else {
+			res.status(403).end();
+			return;
+		}
+		
+	} else {
+		res.status(401).end();
+		return;
+	}
+
+};
+
+app.get('/register/:clientId', validateConfigurationEndpointRequest, function(req, res) {
+	res.status(200).json(client);
+});
+
+app.put('/register/:clientId', validateConfigurationEndpointRequest, function(req, res) {
+
+	if (req.body.client_id != client.client_id) {
+		res.status(400).json({error: 'invalid_client_metadata'});
+		return;
+	}
+	
+	if (req.body.client_secret && req.body.client_secret != client.client_secret) {
+		res.status(400).json({error: 'invalid_client_metadata'});
+	}
+
+	var reg = checkClientMetadata(req);
+	if (!reg) {
+		return;
+	}
+
+	__.each(client, function(value, key, list)) {
+		client[key] = reg[key];
+	};
+	
+});
+
+app.delete('/register/:clientId', validateConfigurationEndpointRequest, function(req, res) {
+	clients = __.reject(clients, __.matches({client_id: client.client_id}));
+
+	nosql.remove(function(token) {
+		if (token.client_id == clientId) {
+			return true;	
+		}
+	}, function(err, count) {
+		console.log("Removed %s tokens", count);
+		res.status(204).end();
+		return;
+	});
+
+	
 });
 
 app.use('/', express.static('files/authorizationServer'));
