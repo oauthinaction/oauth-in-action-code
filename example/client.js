@@ -83,7 +83,8 @@ var registerClient = function() {
 		redirect_uris: ['http://localhost:9000/callback'],
 		grant_types: ['authorization_code'],
 		response_types: ['code'],
-		token_endpoint_auth_method: 'secret_basic'
+		token_endpoint_auth_method: 'secret_basic',
+		scope: 'openid profile email address phone'
 	};
 
 	var headers = {

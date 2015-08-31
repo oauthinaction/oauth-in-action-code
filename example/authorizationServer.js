@@ -60,6 +60,26 @@ var protectedResources = [
 	}
 ];
 
+var userInfo = {
+
+	"alice": {
+		"sub": "9XE3-JI34-00132A",
+		"preferred_username": "alice",
+		"name": "Alice",
+		"email": "alice.wonderland@example.com",
+		"email_verified": true
+	},
+	
+	"bob": {
+		"sub": "1ZT5-OE63-57383B",
+		"preferred_username": "bob",
+		"name": "Bob",
+		"email": "bob.loblob@example.net",
+		"email_verified": false
+	}	
+	
+};
+
 var codes = {};
 
 var requests = {};
@@ -90,10 +110,11 @@ app.get("/authorize", function(req, res){
 		return;
 	} else {
 		
-		var scope = req.query.scope ? req.query.scope.split(' ') : undefined;
-		if (__.difference(scope, client.scope).length > 0) {
+		var rscope = req.query.scope ? req.query.scope.split(' ') : undefined;
+		var cscope = client.scope ? client.scope.split(' ') : undefined;
+		if (__.difference(rscope, cscope).length > 0) {
 			// client asked for a scope it couldn't have
-			var urlParsed =url.parse(client.redirect_uri);
+			var urlParsed = url.parse(req.query.redirect_uri);
 			delete urlParsed.search; // this is a weird behavior of the URL library
 			urlParsed.query = urlParsed.query || {};
 			urlParsed.query.error = 'invalid_scope';
@@ -105,7 +126,7 @@ app.get("/authorize", function(req, res){
 		
 		requests[reqid] = req.query;
 		
-		res.render('approve', {client: client, reqid: reqid, scope: scope});
+		res.render('approve', {client: client, reqid: reqid, scope: rscope});
 		return;
 	}
 
@@ -133,9 +154,10 @@ app.post('/approve', function(req, res) {
 			var scope = __.filter(__.keys(req.body), function(s) { return __.string.startsWith(s, 'scope_'); })
 				.map(function(s) { return s.slice('scope_'.length); });
 			var client = getClient(query.client_id);
-			if (__.difference(scope, client.scope).length > 0) {
+			var cscope = client.scope ? client.scope.split(' ') : undefined;
+			if (__.difference(scope, cscope).length > 0) {
 				// client asked for a scope it couldn't have
-				var urlParsed =url.parse(client.redirect_uri);
+				var urlParsed = url.parse(query.redirect_uri);
 				delete urlParsed.search; // this is a weird behavior of the URL library
 				urlParsed.query = urlParsed.query || {};
 				urlParsed.query.error = 'invalid_scope';
@@ -217,10 +239,12 @@ app.post("/token", function(req, res){
 		if (code) {
 			delete codes[req.body.code]; // burn our code, it's been used
 			if (code.authorizationEndpointRequest.client_id == clientId) {
-				//var access_token = randomstring.generate();
+				var access_token = randomstring.generate();
+				var refresh_token = randomstring.generate();
+				
+				/*
 				var header = { 'typ': 'JWT', 'alg': 'RS256', 'kid': 'authserver'};
 				
-				var refresh_token = randomstring.generate();
 				var payload = {};
 				payload.iss = 'http://localhost:9001/';
 				payload.sub = code.user;
@@ -239,13 +263,40 @@ app.post("/token", function(req, res){
 				//var access_token = jose.jws.JWS.sign('HS256', stringHeader, stringPayload, new Buffer(sharedTokenSecret).toString('hex'));
 				var privateKey = jose.KEYUTIL.getKey(rsaKey);
 				var access_token = jose.jws.JWS.sign('RS256', stringHeader, stringPayload, privateKey);
-
+				*/
+				
+				var header = { 'typ': 'JWT', 'alg': 'RS256', 'kid': 'authserver'};
+				
+				var user = userInfo[code.user];
+				console.log(code);
+				console.log(userInfo);
+				if (!user) {
+					res.status(500).render('error', {error: 'Unknown user ' + code.user});
+					return;
+				}
+				
+				console.log(user);
+				
+				var payload = {};
+				payload.iss = 'http://localhost:9001/';
+				payload.sub = user.sub;
+				payload.aud = clientId;
+				payload.iat = Math.floor(Date.now() / 1000);
+				payload.exp = Math.floor(Date.now() / 1000) + (5 * 60);
+				
+				var stringHeader = JSON.stringify(header);
+				var stringPayload = JSON.stringify(payload);
+				var privateKey = jose.KEYUTIL.getKey(rsaKey);
+				var id_token = jose.jws.JWS.sign('RS256', stringHeader, stringPayload, privateKey);
+				
+				
 				nosql.insert({ access_token: access_token, client_id: clientId, scope: code.scope, user: code.user });
 				nosql.insert({ refresh_token: refresh_token, client_id: clientId, scope: code.scope, user: code.user });
 
 				console.log('Issuing access token %s and refresh token %s with scope %s for code %s', access_token, refresh_token, code.scope, req.body.code);
+				console.log('Iussing ID token %s', id_token);
 
-				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: refresh_token, scope: code.scope.join(' ') };
+				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: refresh_token, scope: code.scope.join(' '), id_token: id_token };
 				res.status(200).json(token_response);
 				return;
 			} else {
@@ -458,6 +509,10 @@ var checkClientMetadata = function (req) {
 		reg.logo_uri = req.body.logo_uri;
 	}
 	
+	if (typeof(req.body.scope) == 'string') {
+		reg.scope = req.body.scope;
+	}
+	
 	return reg;
 };
 
@@ -476,7 +531,7 @@ app.post('/register', function (req, res){
 	reg.client_id_created_at = Math.floor(Date.now() / 1000);
 	reg.client_secret_expires_at = 0;
 
-	reg.registration_access_token = randomString.generate();
+	reg.registration_access_token = randomstring.generate();
 	reg.registration_client_uri = 'http://localhost:9001/register/' + reg.client_id;
 
 	clients.push(reg);
@@ -533,9 +588,14 @@ app.put('/register/:clientId', validateConfigurationEndpointRequest, function(re
 		return;
 	}
 
-	__.each(client, function(value, key, list)) {
+	__.each(client, function(value, key, list) {
 		client[key] = reg[key];
-	};
+	});
+	__.each(reg, function(value, key, list) {
+		client[key] = reg[key];
+	});
+
+	res.status(200).json(client);
 	
 });
 
@@ -555,6 +615,99 @@ app.delete('/register/:clientId', validateConfigurationEndpointRequest, function
 
 	
 });
+
+var getAccessToken = function(req, res, next) {
+	// check the auth header first
+	var auth = req.headers['authorization'];
+	var inToken = null;
+	if (auth && auth.toLowerCase().indexOf('bearer') == 0) {
+		inToken = auth.slice('bearer '.length);
+	} else if (req.body && req.body.access_token) {
+		// not in the header, check in the form body
+		inToken = req.body.access_token;
+	} else if (req.query && req.query.access_token) {
+		inToken = req.query.access_token
+	}
+	
+	console.log('Incoming token: %s', inToken);
+	nosql.one(function(token) {
+		if (token.access_token == inToken) {
+			return token;	
+		}
+	}, function(err, token) {
+		if (token) {
+			console.log("We found a matching token: %s", inToken);
+		} else {
+			console.log('No matching token was found.');
+		}
+		req.access_token = token;
+		next();
+		return;
+	});
+};
+
+var requireAccessToken = function(req, res, next) {
+	if (req.access_token) {
+		next();
+	} else {
+		res.status(401).end();
+	}
+};
+
+var userInfoEndpoint = function(req, res) {
+	
+	if (!__.contains(req.access_token.scope, 'openid')) {
+		res.status(403).end();
+		return;
+	}
+	
+	var user = userInfo[req.access_token.user];
+	if (!user) {
+		res.status(404).end();
+		return;
+	}
+	
+	var out = {};
+	__.each(req.access_token.scope, function (scope) {
+		if (scope == 'openid') {
+			__.each(['sub'], function(claim) {
+				if (user[claim]) {
+					out[claim] = user[claim];
+				}
+			});
+		} else if (scope == 'profile') {
+			__.each(['name', 'family_name', 'given_name', 'middle_name', 'nickname', 'preferred_username', 'profile', 'picture', 'website', 'gender', 'birthdate', 'zoneinfo', 'locale', 'updated_at'], function(claim) {
+				if (user[claim]) {
+					out[claim] = user[claim];
+				}
+			});
+		} else if (scope == 'email') {
+			__.each(['email', 'email_verified'], function(claim) {
+				if (user[claim]) {
+					out[claim] = user[claim];
+				}
+			});
+		} else if (scope == 'address') {
+			__.each(['address'], function(claim) {
+				if (user[claim]) {
+					out[claim] = user[claim];
+				}
+			});
+		} else if (scope == 'phone') {
+			__.each(['phone_number', 'phone_number_verified'], function(claim) {
+				if (user[claim]) {
+					out[claim] = user[claim];
+				}
+			});
+		}
+	});
+	
+	res.status(200).json(out);
+	return;
+};
+
+app.get('/userinfo', getAccessToken, requireAccessToken, userInfoEndpoint);
+app.post('/userinfo', getAccessToken, requireAccessToken, userInfoEndpoint);
 
 app.use('/', express.static('files/authorizationServer'));
 
