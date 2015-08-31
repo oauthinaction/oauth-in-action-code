@@ -548,9 +548,10 @@ app.delete('/register/:clientId', validateConfigurationEndpointRequest, function
 		}
 	}, function(err, count) {
 		console.log("Removed %s tokens", count);
-		res.status(204).end();
-		return;
 	});
+	
+	res.status(204).end();
+	return;
 
 	
 });
