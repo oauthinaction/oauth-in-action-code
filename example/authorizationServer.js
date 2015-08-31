@@ -31,14 +31,14 @@ var clients = [
 	{
 		"client_id": "oauth-client-1",
 		"client_secret": "oauth-client-secret-1",
-		"redirect_uri": "http://localhost:9000/callback",
-		"scope": ["movies", "foods", "music"]
+		"redirect_uris": ["http://localhost:9000/callback"],
+		"scope": "openid profile email phone address"
 	},
 	{
 		"client_id": "oauth-client-2",
 		"client_secret": "oauth-client-secret-1",
-		"redirect_uri": "http://localhost:9000/callback",
-		"scope": ["bar"]
+		"redirect_uris": ["http://localhost:9000/callback"],
+		"scope": "bar"
 	}
 ];
 
@@ -283,6 +283,9 @@ app.post("/token", function(req, res){
 				payload.aud = clientId;
 				payload.iat = Math.floor(Date.now() / 1000);
 				payload.exp = Math.floor(Date.now() / 1000) + (5 * 60);
+				if (code.authorizationEndpointRequest.nonce) {
+					payload.nonce = code.authorizationEndpointRequest.nonce;
+				}
 				
 				var stringHeader = JSON.stringify(header);
 				var stringPayload = JSON.stringify(payload);

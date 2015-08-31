@@ -5,6 +5,8 @@ var qs = require("qs");
 var querystring = require('querystring');
 var cons = require('consolidate');
 var randomstring = require("randomstring");
+var jose = require('./lib/jsrsasign.js');
+var base64url = require('base64url');
 
 
 var app = express();
@@ -18,20 +20,28 @@ var authServer = {
 	authorizationEndpoint: 'http://localhost:9001/authorize',
 	tokenEndpoint: 'http://localhost:9001/token',
 	revocationEndpoint: 'http://localhost:9001/revoke',
-	registrationEndpoint: 'http://localhost:9001/register'
+	registrationEndpoint: 'http://localhost:9001/register',
+	userInfoEndpoint: 'http://localhost:9001/userinfo'
+};
+
+var rsaKey = {
+  "alg": "RS256",
+  "e": "AQAB",
+  "n": "p8eP5gL1H_H9UNzCuQS-vNRVz3NWxZTHYk1tG9VpkfFjWNKG3MFTNZJ1l5g_COMm2_2i_YhQNH8MJ_nQ4exKMXrWJB4tyVZohovUxfw-eLgu1XQ8oYcVYW8ym6Um-BkqwwWL6CXZ70X81YyIMrnsGTyTV6M8gBPun8g2L8KbDbXR1lDfOOWiZ2ss1CRLrmNM-GRp3Gj-ECG7_3Nx9n_s5to2ZtwJ1GS1maGjrSZ9GRAYLrHhndrL_8ie_9DS2T-ML7QNQtNkg2RvLv4f0dpjRYI23djxVtAylYK4oiT_uEMgSkc4dxwKwGuBxSO0g9JOobgfy0--FUHHYtRi0dOFZw",
+  "kty": "RSA",
+  "kid": "authserver"
 };
 
 // client information
-/*
+
 var client = {
 	"client_id": "oauth-client-1",
 	"client_secret": "oauth-client-secret-1",
-	"redirect_uri": "http://localhost:9000/callback",
-	"scope": "movies foods music"
+	"redirect_uris": ["http://localhost:9000/callback"],
+	"scope": "openid profile email address phone"
 };
-*/
 
-var client = {};
+//var client = {};
 
 var protectedResource = 'http://localhost:9002/resource';
 var wordApi = 'http://localhost:9002/words';
@@ -43,6 +53,7 @@ var state = null;
 var access_token = null;
 var refresh_token = null;
 var scope = null;
+var id_token = null;
 
 app.get('/', function (req, res) {
 	res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope});
@@ -157,6 +168,47 @@ app.get("/callback", function(req, res){
 			refresh_token = body.refresh_token;
 			console.log('Got refresh token: %s', refresh_token);
 		}
+		
+		if (body.id_token) {
+			console.log('Got ID token: %s', body.id_token);
+			
+			// check the id token
+			var pubKey = jose.KEYUTIL.getKey(rsaKey);
+			var signatureValid = jose.jws.JWS.verify(body.id_token, pubKey, ['RS256']);
+			if (signatureValid) {
+				console.log('Signature validated.');
+				var tokenParts = body.id_token.split('.');
+				var payload = JSON.parse(base64url.decode(tokenParts[1]));
+				console.log('Payload', payload);
+				if (payload.iss == 'http://localhost:9001/') {
+					console.log('issuer OK');
+					if ((Array.isArray(payload.aud) && _.contains(payload.aud, client.client_id)) || 
+						payload.aud == client.client_id) {
+						console.log('Audience OK');
+				
+						var now = Math.floor(Date.now() / 1000);
+				
+						if (payload.iat <= now) {
+							console.log('issued-at OK');
+							if (payload.exp >= now) {
+								console.log('expiration OK');
+						
+								console.log('Token valid!');
+		
+								id_token = payload;
+						
+							}
+						}
+					}
+			
+				}
+			
+
+			}
+			
+			
+		}
+		
 		scope = body.scope;
 		console.log('Got scope: %s', scope);
 
@@ -400,6 +452,30 @@ app.post('/revoke', function(req, res) {
 		res.render('error', {error: tokRes.statusCode});
 		return;
 	}
+});
+
+app.get('/userinfo', function(req, res) {
+	
+	var headers = {
+		'Authorization': 'Bearer ' + access_token
+	};
+	
+	var resource = request('GET', authServer.userInfoEndpoint,
+		{headers: headers}
+	);
+	if (resource.statusCode >= 200 && resource.statusCode < 300) {
+		var body = JSON.parse(resource.getBody());
+		console.log('Got data: ', body);
+	
+		userInfo = body;
+	
+		res.render('userinfo', {userInfo: userInfo, id_token: id_token});
+		return;
+	} else {
+		res.render('error', {error: 'Unable to fetch user information'});
+		return;
+	}
+	
 });
 
 app.use('/', express.static('files/client'));
