@@ -175,6 +175,34 @@ app.post('/approve', function(req, res) {
 			urlParsed.query.state = query.state; 
 			res.redirect(url.format(urlParsed));
 			return;
+		} else if (query.response_type == 'token') {
+			var user = req.body.user;
+		
+			var scope = __.filter(__.keys(req.body), function(s) { return __.string.startsWith(s, 'scope_'); })
+				.map(function(s) { return s.slice('scope_'.length); });
+			var client = getClient(query.client_id);
+			var cscope = client.scope ? client.scope.split(' ') : undefined;
+			if (__.difference(scope, cscope).length > 0) {
+				// client asked for a scope it couldn't have
+				var urlParsed = url.parse(query.redirect_uri);
+				delete urlParsed.search; // this is a weird behavior of the URL library
+				urlParsed.query = urlParsed.query || {};
+				urlParsed.query.error = 'invalid_scope';
+				res.redirect(url.format(urlParsed));
+				return;
+			}
+
+			var access_token = randomstring.generate();
+
+			nosql.insert({ access_token: access_token, client_id: query.clientId, scope: cscope, user: user });
+
+			console.log('Issuing access token %s  with scope %s', access_token, cscope);
+
+			var urlParsed = url.parse(query.redirect_uri);
+			delete urlParsed.search; // this is a weird behavior of the URL library
+ 			urlParsed.hash = 'access_token='+access_token;
+			res.redirect(url.format(urlParsed));
+
 		} else {
 			// we got a response type we don't understand
 			var urlParsed =url.parse(query.redirect_uri);
