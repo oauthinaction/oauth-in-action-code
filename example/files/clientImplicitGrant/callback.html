@@ -37,7 +37,9 @@
     <div class="container">
 
       <div class="jumbotron">
+      <p>Scope value: <span class="label label-danger oauth-scope-value"></span></p>
 		  <p>Access token value: <span class="label label-danger oauth-access-token"></span></p>
+      <button class="btn btn-default oauth-authorize" type="button">Get OAuth Token</button> 
 		  <button class="btn btn-default oauth-fetch-resource" type="button">Get Protected Resource</button> 
       </div>
 
@@ -54,7 +56,31 @@
 
       var callbackInfo = {};
 
+      // client information
+      var client = {
+        "client_id": "oauth-client-1",
+        "redirect_uris": ["http://localhost:9000/callback"],
+        "scope": "openid profile email address phone"
+      };
+
+      // authorization server information
+      var authServer = {
+        authorizationEndpoint: 'http://localhost:9001/authorize'
+      };
+
       var protectedResource = 'http://localhost:9002/resource';
+
+      $('.oauth-scope-value').text(client.scope);
+
+       $('.oauth-authorize').on('click', function (ev) {
+        // @ encodeURIComponent
+        // @todo state
+        location.href = authServer.authorizationEndpoint + '?' + 
+          'response_type=token' +
+          '&scope=' + client.scope + 
+          '&client_id=' + client.client_id +
+          '&redirect_uri=' + client.redirect_uris[0];
+      });
 
       if (location.hash) {
         var h = location.hash.substring(1);

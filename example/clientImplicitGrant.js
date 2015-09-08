@@ -14,6 +14,6 @@ var server = app.listen(9000, 'localhost', function () {
   console.log('OAuth Client is listening at http://%s:%s', host, port);
 });
 
-app.get("/callback", function(req, res){
+app.get("/*", function(req, res){
 	res.sendFile(path.join(__dirname, "files/clientImplicitGrant/callback.html"));
 });
