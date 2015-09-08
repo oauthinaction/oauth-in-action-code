@@ -40,9 +40,12 @@
       <p>Scope value: <span class="label label-danger oauth-scope-value"></span></p>
 		  <p>Access token value: <span class="label label-danger oauth-access-token"></span></p>
       <button class="btn btn-default oauth-authorize" type="button">Get OAuth Token</button> 
-		  <button class="btn btn-default oauth-fetch-resource" type="button">Get Protected Resource</button> 
+		  <button class="btn btn-default oauth-fetch-resource" type="button">Get Protected Resource</button>
       </div>
-
+      <div class="jumbotron">
+      <h2>Data from protected resource:</h2>
+      <pre><span class="oauth-protected-resource"</pre>
+      </div>
     </div><!-- /.container -->
 
 	
@@ -104,9 +107,16 @@
           url: protectedResource,
           type: 'POST',
           crossDomain: true,
+          dataType: 'json',
           headers: {
             'Authorization': 'Bearer ' + callbackInfo.access_token
           }
+        })
+        .done(function(data) {
+          $('.oauth-protected-resource').text(JSON.stringify(data));
+        })
+        .fail(function() {
+          $('.oauth-protected-resource').text("Error while fetching the protected resource");
         })
       });      
     </script>
