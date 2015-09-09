@@ -192,16 +192,16 @@ app.post('/approve', function(req, res) {
 				return;
 			}
 
-			var access_token = randomstring.generate();
+			var token_response = generateTokens(req, res, query.clientId, user, cscope);
 
-			nosql.insert({ access_token: access_token, client_id: query.clientId, scope: cscope, user: user });
-
-			console.log('Issuing access token %s  with scope %s', access_token, cscope);
-
-			var urlParsed = url.parse(query.redirect_uri);
-			delete urlParsed.search; // this is a weird behavior of the URL library
- 			urlParsed.hash = 'access_token='+access_token;
-			res.redirect(url.format(urlParsed));
+			if (token_response == null) {
+				res.status(500).render('error', {error: 'Unknown user ' + code.user});
+			} else {
+				var urlParsed = url.parse(query.redirect_uri);
+				delete urlParsed.search; // this is a weird behavior of the URL library
+ 				urlParsed.hash = 'access_token='+token_response.access_token;
+				res.redirect(url.format(urlParsed));
+			}
 
 		} else {
 			// we got a response type we don't understand
@@ -223,6 +223,84 @@ app.post('/approve', function(req, res) {
 	}
 	
 });
+
+var generateTokens = function (req, res, clientId, user, scope, nonce, generateRefreshToken) {
+	var access_token = randomstring.generate();
+
+	var refresh_token = null;
+
+	if (generateRefreshToken) {
+		refresh_token = randomstring.generate();	
+	}	
+
+	/*
+	var header = { 'typ': 'JWT', 'alg': 'RS256', 'kid': 'authserver'};
+
+	var payload = {};
+	payload.iss = 'http://localhost:9001/';
+	payload.sub = user;
+	payload.aud = 'http://localhost:9002/';
+	payload.iat = Math.floor(Date.now() / 1000);
+	payload.exp = Math.floor(Date.now() / 1000) + (5 * 60);
+	payload.jti = randomstring.generate();
+	console.log(payload);
+
+	var stringHeader = JSON.stringify(header);
+	var stringPayload = JSON.stringify(payload);
+	//var encodedHeader = base64url.encode(JSON.stringify(header));
+	//var encodedPayload = base64url.encode(JSON.stringify(payload));
+
+	//var access_token = encodedHeader + '.' + encodedPayload + '.';
+	//var access_token = jose.jws.JWS.sign('HS256', stringHeader, stringPayload, new Buffer(sharedTokenSecret).toString('hex'));
+	var privateKey = jose.KEYUTIL.getKey(rsaKey);
+	var access_token = jose.jws.JWS.sign('RS256', stringHeader, stringPayload, privateKey);
+	*/
+
+	var header = { 'typ': 'JWT', 'alg': 'RS256', 'kid': 'authserver'};
+	
+	var user = userInfo[user];
+	//console.log(code);
+	console.log(userInfo);
+	if (!user) {		
+		consle.log('Unknown user %s', user)
+		return null;
+	}
+	
+	console.log("User %s", user);
+
+	var payload = {};
+	payload.iss = 'http://localhost:9001/';
+	payload.sub = user.sub;
+	payload.aud = clientId;
+	payload.iat = Math.floor(Date.now() / 1000);
+	payload.exp = Math.floor(Date.now() / 1000) + (5 * 60);	
+
+	if (nonce) {
+		payload.nonce = nonce;
+	}
+
+	var stringHeader = JSON.stringify(header);
+	var stringPayload = JSON.stringify(payload);
+	var privateKey = jose.KEYUTIL.getKey(rsaKey);
+	var id_token = jose.jws.JWS.sign('RS256', stringHeader, stringPayload, privateKey);
+
+	nosql.insert({ access_token: access_token, client_id: clientId, scope: scope, user: user });
+
+	if (refresh_token) {
+		nosql.insert({ refresh_token: refresh_token, client_id: clientId, scope: scope, user: user });
+	}
+	
+	console.log('Issuing access token %s', access_token);
+	if (refresh_token) {
+		console.log('and refresh token %s', refresh_token);
+	}
+	console.log('with scope %s', access_token, scope);
+	console.log('Iussing ID token %s', id_token);
+
+	var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: refresh_token, scope: scope.join(' '), id_token: id_token };
+
+	return token_response;
+};
 
 app.post("/token", function(req, res){
 	
@@ -267,68 +345,15 @@ app.post("/token", function(req, res){
 		if (code) {
 			delete codes[req.body.code]; // burn our code, it's been used
 			if (code.authorizationEndpointRequest.client_id == clientId) {
-				var access_token = randomstring.generate();
-				var refresh_token = randomstring.generate();
+				var token_response = generateTokens(req, res, clientId, code.user, code.scope, code.authorizationEndpointRequest.nonce, true);
 				
-				/*
-				var header = { 'typ': 'JWT', 'alg': 'RS256', 'kid': 'authserver'};
-				
-				var payload = {};
-				payload.iss = 'http://localhost:9001/';
-				payload.sub = code.user;
-				payload.aud = 'http://localhost:9002/';
-				payload.iat = Math.floor(Date.now() / 1000);
-				payload.exp = Math.floor(Date.now() / 1000) + (5 * 60);
-				payload.jti = randomstring.generate();
-				console.log(payload);
-				
-				var stringHeader = JSON.stringify(header);
-				var stringPayload = JSON.stringify(payload);
-				//var encodedHeader = base64url.encode(JSON.stringify(header));
-				//var encodedPayload = base64url.encode(JSON.stringify(payload));
-				
-				//var access_token = encodedHeader + '.' + encodedPayload + '.';
-				//var access_token = jose.jws.JWS.sign('HS256', stringHeader, stringPayload, new Buffer(sharedTokenSecret).toString('hex'));
-				var privateKey = jose.KEYUTIL.getKey(rsaKey);
-				var access_token = jose.jws.JWS.sign('RS256', stringHeader, stringPayload, privateKey);
-				*/
-				
-				var header = { 'typ': 'JWT', 'alg': 'RS256', 'kid': 'authserver'};
-				
-				var user = userInfo[code.user];
-				console.log(code);
-				console.log(userInfo);
-				if (!user) {
+				if (token_response == null) {
 					res.status(500).render('error', {error: 'Unknown user ' + code.user});
-					return;
+				} else {
+					res.status(200).json(token_response);
+					console.log('Issued tokens for code %s', req.body.code);
 				}
 				
-				console.log(user);
-				
-				var payload = {};
-				payload.iss = 'http://localhost:9001/';
-				payload.sub = user.sub;
-				payload.aud = clientId;
-				payload.iat = Math.floor(Date.now() / 1000);
-				payload.exp = Math.floor(Date.now() / 1000) + (5 * 60);
-				if (code.authorizationEndpointRequest.nonce) {
-					payload.nonce = code.authorizationEndpointRequest.nonce;
-				}
-				
-				var stringHeader = JSON.stringify(header);
-				var stringPayload = JSON.stringify(payload);
-				var privateKey = jose.KEYUTIL.getKey(rsaKey);
-				var id_token = jose.jws.JWS.sign('RS256', stringHeader, stringPayload, privateKey);
-				
-				
-				nosql.insert({ access_token: access_token, client_id: clientId, scope: code.scope, user: code.user });
-				nosql.insert({ refresh_token: refresh_token, client_id: clientId, scope: code.scope, user: code.user });
-
-				console.log('Issuing access token %s and refresh token %s with scope %s for code %s', access_token, refresh_token, code.scope, req.body.code);
-				console.log('Iussing ID token %s', id_token);
-
-				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: refresh_token, scope: code.scope.join(' '), id_token: id_token };
-				res.status(200).json(token_response);
 				return;
 			} else {
 				console.log('Client mismatch, expected %s got %s', code.authorizationEndpointRequest.client_id, clientId);
