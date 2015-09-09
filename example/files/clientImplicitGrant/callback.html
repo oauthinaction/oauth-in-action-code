@@ -73,16 +73,28 @@
 
       var protectedResource = 'http://localhost:9002/resource';
 
+      function generateState(len) {
+        var r = "";
+        var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+        for( var i=0; i < len; i++ )
+        r += possible.charAt(Math.floor(Math.random() * possible.length));
+
+        return r;
+      }  
+
       $('.oauth-scope-value').text(client.scope);
 
        $('.oauth-authorize').on('click', function (ev) {
-        // @ encodeURIComponent
-        // @todo state
+        var state = generateState(32);
+        localStorage.setItem('oauth-state', state);
+
         location.href = authServer.authorizationEndpoint + '?' + 
           'response_type=token' +
-          '&scope=' + client.scope + 
-          '&client_id=' + client.client_id +
-          '&redirect_uri=' + client.redirect_uris[0];
+          '&state=' + state +
+          '&scope=' + encodeURIComponent(client.scope) + 
+          '&client_id=' + encodeURIComponent(client.client_id) +
+          '&redirect_uri=' + encodeURIComponent(client.redirect_uris[0]);
       });
 
       if (location.hash) {
@@ -98,26 +110,34 @@
           }
         });
 
-        $('.oauth-access-token').text(callbackInfo.access_token);
-        console.log('access_token: ', callbackInfo.access_token);
+        if (callbackInfo.state !== localStorage.getItem('oauth-state')) {
+          console.log('State DOES NOT MATCH: expected %s got %s', localStorage.getItem('oauth-state'), callbackInfo.state);
+          callbackInfo = null;
+          $('.oauth-protected-resource').text("Error state value did not match");
+        } else {
+          $('.oauth-access-token').text(callbackInfo.access_token);
+          console.log('access_token: ', callbackInfo.access_token);
+        }
       }
 
       $('.oauth-fetch-resource').on('click', function (ev) {
-        $.ajax({
-          url: protectedResource,
-          type: 'POST',
-          crossDomain: true,
-          dataType: 'json',
-          headers: {
-            'Authorization': 'Bearer ' + callbackInfo.access_token
-          }
-        })
-        .done(function(data) {
-          $('.oauth-protected-resource').text(JSON.stringify(data));
-        })
-        .fail(function() {
-          $('.oauth-protected-resource').text("Error while fetching the protected resource");
-        })
+        if (callbackInfo != null ) {
+          $.ajax({
+            url: protectedResource,
+            type: 'POST',
+            crossDomain: true,
+            dataType: 'json',
+            headers: {
+              'Authorization': 'Bearer ' + callbackInfo.access_token
+            }
+          })
+          .done(function(data) {
+            $('.oauth-protected-resource').text(JSON.stringify(data));
+          })
+          .fail(function() {
+            $('.oauth-protected-resource').text("Error while fetching the protected resource");
+          })
+        }
       });      
     </script>
   </body>
