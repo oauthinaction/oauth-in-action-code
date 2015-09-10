@@ -76,8 +76,17 @@ var userInfo = {
 		"name": "Bob",
 		"email": "bob.loblob@example.net",
 		"email_verified": false
-	}	
-	
+	},
+
+	"carol": {
+		"sub": "F5Q1-L6LGG-959FS",
+		"preferred_username": "carol",
+		"name": "Carol",
+		"email": "carol.lewis@example.net",
+		"email_verified": true,
+		"username" : "clewis",
+		"password" : "user password!"
+ 	}	
 };
 
 var codes = {};
@@ -90,6 +99,11 @@ var getClient = function(clientId) {
 
 var getProtectedResource = function(resourceId) {
 	return __.find(protectedResources, function(resource) { return resource.resource_id == resourceId; });
+};
+
+
+var getUser = function(username) {
+	return __.find(userInfo, function (user, key) { return user.username == username; });
 };
 
 app.get('/', function(req, res) {
@@ -296,7 +310,12 @@ var generateTokens = function (req, res, clientId, user, scope, nonce, generateR
 	console.log('with scope %s', access_token, scope);
 	console.log('Iussing ID token %s', id_token);
 
-	var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: refresh_token, scope: scope.join(' '), id_token: id_token };
+	var cscope = null;
+	if (scope) {
+		cscope = scope.join(' ')
+	}
+
+	var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: refresh_token, scope: cscope, id_token: id_token };
 
 	return token_response;
 };
@@ -393,6 +412,29 @@ app.post("/token", function(req, res){
 				res.status(401).end();
 			}
 		});
+	} else if (req.body.grant_type == 'password') {
+		var username = req.body.username;
+		var user = getUser(username);
+		if (!user) {
+			console.log('Unknown user %s', user);
+			res.status(401).json({error: 'invalid_client'});
+			return;
+		}
+		console.log("user is %j ", user)
+		
+		var password = req.body.password;
+		if (user.password != password) {
+			console.log('Mismatched resource owner password, expected %s got %s', user.password, password);
+			res.status(401).json({error: 'invalid_client'});
+			return;
+		}
+
+		var scope = req.body.scope;
+
+		var token_response = generateTokens(req, res, clientId, user, scope);
+		
+		res.status(200).json(token_response);		
+		return;
 	} else {
 		console.log('Unknown grant type %s', req.body.grant_type);
 		res.status(400).json({error: 'unsupported_grant_type'});
