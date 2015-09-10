@@ -200,6 +200,9 @@ app.post('/approve', function(req, res) {
 				var urlParsed = url.parse(query.redirect_uri);
 				delete urlParsed.search; // this is a weird behavior of the URL library
  				urlParsed.hash = 'access_token='+token_response.access_token;
+ 				if (query.state) {
+ 					urlParsed.hash += "&state="+query.state;
+ 				} 				
 				res.redirect(url.format(urlParsed));
 			}
 
@@ -262,7 +265,7 @@ var generateTokens = function (req, res, clientId, user, scope, nonce, generateR
 	//console.log(code);
 	console.log(userInfo);
 	if (!user) {		
-		consle.log('Unknown user %s', user)
+		console.log('Unknown user %s', user)
 		return null;
 	}
 	
