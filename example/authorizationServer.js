@@ -192,19 +192,25 @@ app.post('/approve', function(req, res) {
 				return;
 			}
 
-			var token_response = generateTokens(req, res, query.clientId, user, cscope);
-
-			if (token_response == null) {
-				res.status(500).render('error', {error: 'Unknown user ' + code.user});
-			} else {
-				var urlParsed = url.parse(query.redirect_uri);
-				delete urlParsed.search; // this is a weird behavior of the URL library
- 				urlParsed.hash = 'access_token='+token_response.access_token;
- 				if (query.state) {
- 					urlParsed.hash += "&state="+query.state;
- 				} 				
-				res.redirect(url.format(urlParsed));
+			var user = userInfo[user];
+			if (!user) {		
+				console.log('Unknown user %s', user)
+				res.status(500).render('error', {error: 'Unknown user ' + user});
+				return;
 			}
+	
+			console.log("User %j", user);
+
+			var token_response = generateTokens(req, res, query.clientId, user, cscope);		
+
+			var urlParsed = url.parse(query.redirect_uri);
+			delete urlParsed.search; // this is a weird behavior of the URL library
+				urlParsed.hash = 'access_token='+token_response.access_token;
+				if (query.state) {
+					urlParsed.hash += "&state="+query.state;
+				} 				
+			res.redirect(url.format(urlParsed));
+			
 
 		} else {
 			// we got a response type we don't understand
@@ -261,16 +267,6 @@ var generateTokens = function (req, res, clientId, user, scope, nonce, generateR
 
 	var header = { 'typ': 'JWT', 'alg': 'RS256', 'kid': 'authserver'};
 	
-	var user = userInfo[user];
-	//console.log(code);
-	console.log(userInfo);
-	if (!user) {		
-		console.log('Unknown user %s', user)
-		return null;
-	}
-	
-	console.log("User %s", user);
-
 	var payload = {};
 	payload.iss = 'http://localhost:9001/';
 	payload.sub = user.sub;
@@ -348,14 +344,19 @@ app.post("/token", function(req, res){
 		if (code) {
 			delete codes[req.body.code]; // burn our code, it's been used
 			if (code.authorizationEndpointRequest.client_id == clientId) {
-				var token_response = generateTokens(req, res, clientId, code.user, code.scope, code.authorizationEndpointRequest.nonce, true);
-				
-				if (token_response == null) {
+
+				var user = userInfo[code.user];
+				if (!user) {		
+					console.log('Unknown user %s', user)
 					res.status(500).render('error', {error: 'Unknown user ' + code.user});
-				} else {
-					res.status(200).json(token_response);
-					console.log('Issued tokens for code %s', req.body.code);
-				}
+					return;
+				}	
+				console.log("User %j", user);
+
+				var token_response = generateTokens(req, res, clientId, user, code.scope, code.authorizationEndpointRequest.nonce, true);
+
+				res.status(200).json(token_response);
+				console.log('Issued tokens for code %s', req.body.code);
 				
 				return;
 			} else {
