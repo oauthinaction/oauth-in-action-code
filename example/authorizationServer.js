@@ -5,6 +5,7 @@ var randomstring = require("randomstring");
 var cons = require('consolidate');
 var nosql = require('nosql').load('database.nosql');
 var querystring = require('querystring');
+var qs = require("qs");
 var __ = require('underscore');
 __.string = require('underscore.string');
 var base64url = require('base64url');
@@ -219,10 +220,10 @@ app.post('/approve', function(req, res) {
 
 			var urlParsed = url.parse(query.redirect_uri);
 			delete urlParsed.search; // this is a weird behavior of the URL library
-				urlParsed.hash = 'access_token='+token_response.access_token;
-				if (query.state) {
-					urlParsed.hash += "&state="+query.state;
-				} 				
+			if (query.state) {
+				token_response.state = query.state;
+			} 				
+			urlParsed.hash = qs.stringify(token_response);
 			res.redirect(url.format(urlParsed));
 			
 
