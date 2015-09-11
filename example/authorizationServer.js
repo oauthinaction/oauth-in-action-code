@@ -225,7 +225,7 @@ app.post('/approve', function(req, res) {
 			} 				
 			urlParsed.hash = qs.stringify(token_response);
 			res.redirect(url.format(urlParsed));
-			
+			return;
 
 		} else {
 			// we got a response type we don't understand
@@ -389,6 +389,23 @@ app.post("/token", function(req, res){
 			res.status(400).json({error: 'invalid_grant'});
 			return;
 		}
+	} else if (req.body.grant_type == 'client_credentials') {
+		var scope = req.body.scope ? req.body.scope.split(' ') : undefined;
+		var client = getClient(query.client_id);
+		var cscope = client.scope ? client.scope.split(' ') : undefined;
+		if (__.difference(scope, cscope).length > 0) {
+			// client asked for a scope it couldn't have
+			res.status(400).json({error: 'invalid_scope'});
+			return;
+		}
+
+		var access_token = randomstring.generate();
+		var token_response = { access_token: access_token, token_type: 'Bearer', scope: scope.join(' ') };
+		nosql.insert({ access_token: access_token, client_id: clientId, scope: scope });
+		console.log('Issuing access token %s', access_token);
+		res.status(200).json(token_response);
+		return;	
+		
 	} else if (req.body.grant_type == 'refresh_token') {
 		nosql.all(function(token) {
 			return (token.refresh_token == req.body.refresh_token);
