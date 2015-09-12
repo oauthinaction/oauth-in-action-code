@@ -435,7 +435,7 @@ app.post("/token", function(req, res){
 		var user = getUser(username);
 		if (!user) {
 			console.log('Unknown user %s', user);
-			res.status(401).json({error: 'invalid_client'});
+			res.status(401).json({error: 'invalid_grant'});
 			return;
 		}
 		console.log("user is %j ", user)
@@ -443,7 +443,7 @@ app.post("/token", function(req, res){
 		var password = req.body.password;
 		if (user.password != password) {
 			console.log('Mismatched resource owner password, expected %s got %s', user.password, password);
-			res.status(401).json({error: 'invalid_client'});
+			res.status(401).json({error: 'invalid_grant'});
 			return;
 		}
 

@@ -478,6 +478,36 @@ app.get('/userinfo', function(req, res) {
 	
 });
 
+app.get('/username_password', function(req, res) {
+	res.render('username_password');
+	return;
+});
+
+app.post('/username_password', function(req, res) {
+	
+	var username = req.body.username;
+	var password = req.body.password;
+	
+	var form_data = qs.stringify({
+				grant_type: 'password',
+				username: username,
+				password: password
+			});
+	var headers = {
+		'Content-Type': 'application/x-www-form-urlencoded',
+		'Authorization': 'Basic ' + new Buffer(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
+	};
+
+	var tokRes = request('POST', authServer.tokenEndpoint, 
+		{	
+			body: form_data,
+			headers: headers
+		}
+	);
+	
+	
+});
+
 app.use('/', express.static('files/client'));
 
 var server = app.listen(9000, 'localhost', function () {
