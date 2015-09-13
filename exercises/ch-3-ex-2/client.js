@@ -134,13 +134,11 @@ app.get('/fetch_resource', function(req, res) {
 		access_token = null;
 		
 		/*
-		 * Instead of returning an error, refresh the access token
+		 * Instead of returning an error, refresh the access token if we have a refresh token
 		 */
 
-		// DELETE THESE LINES
 		res.render('error', {error: resource.statusCode});
 		return;
-		// DELETE THESE LINES
 	}
 	
 	
