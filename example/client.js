@@ -1,4 +1,5 @@
 var express = require("express");
+var bodyParser = require('body-parser');
 var request = require("sync-request");
 var url = require("url");
 var qs = require("qs");
@@ -10,6 +11,9 @@ var base64url = require('base64url');
 
 
 var app = express();
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 app.engine('html', cons.underscore);
 app.set('view engine', 'html');
