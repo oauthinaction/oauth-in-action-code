@@ -412,15 +412,15 @@ app.post("/token", function(req, res){
 		}, function(err, tokens) {
 			if (tokens.length == 1) {
 				var token = tokens[0];
-				if (token.clientId != clientId) {
-					console.log('Invalid client using a refresh token, expected %s got %s', token.clientId, clientId);
+				if (token.client_id != clientId) {
+					console.log('Invalid client using a refresh token, expected %s got %s', token.client_id, clientId);
 					nosql.remove(function(found) { return (found == token); }, function () {} );
 					res.status(400).end();
 					return
 				}
 				console.log("We found a matching token: %s", req.body.refresh_token);
 				var access_token = randomstring.generate();
-				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: refresh_token };
+				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: req.body.refresh_token };
 				nosql.insert({ access_token: access_token, client_id: clientId });
 				console.log('Issuing access token %s for refresh token %s', access_token, req.body.refresh_token);
 				res.status(200).json(token_response);

@@ -32,11 +32,12 @@ var protectedResource = 'http://localhost:9002/resource';
 
 var state = null;
 
-var access_token = null;
+var access_token = '987tghjkiu6trfghjuytrghj';
 var scope = null;
+var refresh_token = '98uhjrk2o3ij2r3oj32r23rmasd';
 
 app.get('/', function (req, res) {
-	res.render('index', {access_token: access_token, scope: scope});
+	res.render('index', {access_token: access_token, scope: scope, refresh_token: refresh_token});
 });
 
 app.get('/authorize', function(req, res){
@@ -98,11 +99,15 @@ app.get('/callback', function(req, res){
 	
 		access_token = body.access_token;
 		console.log('Got access token: %s', access_token);
+		if (body.refresh_token) {
+			refresh_token = body.refresh_token;
+			console.log('Got refresh token: %s', refresh_token);
+		}
 		
 		scope = body.scope;
 		console.log('Got scope: %s', scope);
 
-		res.render('index', {access_token: access_token, scope: scope});
+		res.render('index', {access_token: access_token, scope: scope, refresh_token: refresh_token});
 	} else {
 		res.render('error', {error: 'Unable to fetch access token, server response: ' + tokRes.statusCode})
 	}
@@ -127,12 +132,54 @@ app.get('/fetch_resource', function(req, res) {
 		return;
 	} else {
 		access_token = null;
-		res.render('error', {error: resource.statusCode});
-		return;
+		if (refresh_token) {
+			refreshAccessToken(req, res);
+		}
 	}
 	
 	
 });
+
+var refreshAccessToken = function(req, res) {
+	var form_data = qs.stringify({
+				grant_type: 'refresh_token',
+				refresh_token: refresh_token,
+				redirect_uri: client.redirect_uri
+			});
+	var headers = {
+		'Content-Type': 'application/x-www-form-urlencoded',
+		'Authorization': 'Basic ' + new Buffer(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
+	};
+	console.log('Refreshing token %s', refresh_token);
+	var tokRes = request('POST', authServer.tokenEndpoint, 
+		{	
+			body: form_data,
+			headers: headers
+		}
+	);
+	if (tokRes.statusCode >= 200 && tokRes.statusCode < 300) {
+		var body = JSON.parse(tokRes.getBody());
+
+		access_token = body.access_token;
+		console.log('Got access token: %s', access_token);
+		if (body.refresh_token) {
+			refresh_token = body.refresh_token;
+			console.log('Got refresh token: %s', refresh_token);
+		}
+		scope = body.scope;
+		console.log('Got scope: %s', scope);
+	
+		// try again
+		res.redirect('/fetch_resource');
+		return;
+	} else {
+		console.log('No refresh token, asking the user to get a new access token');
+		// tell the user to get a new access token
+		refresh_token = null;
+		res.render('error', {error: 'Unable to refresh token.'});
+		return;
+	}
+};
 
 app.use('/', express.static('files/client'));
 

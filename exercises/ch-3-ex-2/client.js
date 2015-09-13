@@ -32,11 +32,12 @@ var protectedResource = 'http://localhost:9002/resource';
 
 var state = null;
 
-var access_token = null;
+var access_token = '987tghjkiu6trfghjuytrghj';
 var scope = null;
+var refresh_token = '98uhjrk2o3ij2r3oj32r23rmasd';
 
 app.get('/', function (req, res) {
-	res.render('index', {access_token: access_token, scope: scope});
+	res.render('index', {access_token: access_token, scope: scope, refresh_token: refresh_token});
 });
 
 app.get('/authorize', function(req, res){
@@ -98,11 +99,15 @@ app.get('/callback', function(req, res){
 	
 		access_token = body.access_token;
 		console.log('Got access token: %s', access_token);
+		if (body.refresh_token) {
+			refresh_token = body.refresh_token;
+			console.log('Got refresh token: %s', refresh_token);
+		}
 		
 		scope = body.scope;
 		console.log('Got scope: %s', scope);
 
-		res.render('index', {access_token: access_token, scope: scope});
+		res.render('index', {access_token: access_token, scope: scope, refresh_token: refresh_token});
 	} else {
 		res.render('error', {error: 'Unable to fetch access token, server response: ' + tokRes.statusCode})
 	}
@@ -127,12 +132,31 @@ app.get('/fetch_resource', function(req, res) {
 		return;
 	} else {
 		access_token = null;
+		
+		/*
+		 * Instead of returning an error, refresh the access token
+		 */
+
+		// DELETE THESE LINES
 		res.render('error', {error: resource.statusCode});
 		return;
+		// DELETE THESE LINES
 	}
 	
 	
 });
+
+var refreshAccessToken = function(req, res) {
+
+	/*
+	 * Use the refresh token to get a new access token
+	 */
+	
+	// REMOVE THIS LINE
+	res.render('error', {error: 'Not implemented'});
+	// REMOVE THIS LINE
+
+};
 
 app.use('/', express.static('files/client'));
 
