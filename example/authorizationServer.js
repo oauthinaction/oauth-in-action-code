@@ -44,7 +44,7 @@ var clients = [
 	{
 		"client_id": "native-client-1",
 		"client_secret": "oauth-native-secret-1",
-		"redirect_uris": ["http://localhost:9012"],
+		"redirect_uris": ["http://localhost:9000"],
 		"scope": "openid profile email phone address"
 	}
 ];
