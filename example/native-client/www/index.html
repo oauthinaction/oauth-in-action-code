@@ -99,14 +99,8 @@
                 '&client_id=' + encodeURIComponent(client.client_id) +
                 '&redirect_uri=' + encodeURIComponent(redirectUri);
 
-        var popup = cordova.InAppBrowser.open(url, '_system');
-        popup.addEventListener('loadstart', function (e) {
-          var url = e.url;
-          if (url.indexOf(redirectUri) !== -1) {
-            processCallback(url.substr(url.indexOf('?') + 1));
-            popup.close();
-          }
-        });
+        cordova.InAppBrowser.open(url, '_system');
+         
       }
 
       function handleFetchResourceClick(ev) {
