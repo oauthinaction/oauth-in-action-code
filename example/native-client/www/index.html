@@ -50,132 +50,134 @@
 
     <script>
 
-      (function () {
-        var callbackData;
+      function handleOpenURL(url) {
+        setTimeout(function() {
+          processCallback(url.substr(url.indexOf('?') + 1));
+        }, 0);
+      }
+ 
+      var callbackData;
 
-        // client information
-        var client = {
-          'client_id': 'native-client-1',
-          'client_secret': 'oauth-native-secret-1',
-          'redirect_uris': ['http://localhost:9000'],
-          'scope': 'openid profile email address phone'
-        };
+      // client information
+      var client = {
+        'client_id': 'native-client-1',
+        'client_secret': 'oauth-native-secret-1',
+        'redirect_uris': ['mynativeapp://'],
+        'scope': 'openid profile email address phone'
+      };
 
-        // authorization server information
-        var authServer = {
-          authorizationEndpoint: 'http://localhost:9001/authorize',
-          tokenEndpoint: 'http://localhost:9001/token'
-        };
+      // authorization server information
+      var authServer = {
+        authorizationEndpoint: 'http://localhost:9001/authorize',
+        tokenEndpoint: 'http://localhost:9001/token'
+      };
 
-        var protectedResource = 'http://localhost:9002/resource';
+      var protectedResource = 'http://localhost:9002/resource';
 
-        function generateState(len) {
-          var ret = '';
-          var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      function generateState(len) {
+        var ret = '';
+        var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 
-          for (var i=0; i < len; i++) {
-            // add random character
-            ret += possible.charAt(Math.floor(Math.random() * possible.length));  
+        for (var i=0; i < len; i++) {
+          // add random character
+          ret += possible.charAt(Math.floor(Math.random() * possible.length));  
+        }
+        
+        return ret;
+      }  
+
+      function handleAuthorizationRequestClick(ev) {
+        var state = generateState(32);
+
+        localStorage.setItem('oauth-state', state);
+
+        var redirectUri = client.redirect_uris[0];
+        var url = authServer.authorizationEndpoint + '?' +
+                'response_type=code' +
+                '&state=' + state +
+                '&scope=' + encodeURIComponent(client.scope) +
+                '&client_id=' + encodeURIComponent(client.client_id) +
+                '&redirect_uri=' + encodeURIComponent(redirectUri);
+
+        var popup = cordova.InAppBrowser.open(url, '_system');
+        popup.addEventListener('loadstart', function (e) {
+          var url = e.url;
+          if (url.indexOf(redirectUri) !== -1) {
+            processCallback(url.substr(url.indexOf('?') + 1));
+            popup.close();
           }
-          
-          return ret;
-        }  
+        });
+      }
 
-        function handleAuthorizationRequestClick(ev) {
-          var state = generateState(32);
+      function handleFetchResourceClick(ev) {
+        if (callbackData != null ) {
 
-          localStorage.setItem('oauth-state', state);
-
-          var redirectUri = client.redirect_uris[0];
-          var url = authServer.authorizationEndpoint + '?' +
-                  'response_type=code' +
-                  '&state=' + state +
-                  '&scope=' + encodeURIComponent(client.scope) +
-                  '&client_id=' + encodeURIComponent(client.client_id) +
-                  '&redirect_uri=' + encodeURIComponent(redirectUri);
-
-          var popup = cordova.InAppBrowser.open(url, '_blank'); // _blank _system
-          popup.addEventListener('loadstart', function (e) {
-            var url = e.url;
-            if (url.indexOf(redirectUri) !== -1) {
-              processCallback(url.substr(url.indexOf('?') + 1));
-              popup.close();
+          $.ajax({
+            url: protectedResource,
+            type: 'POST',
+            crossDomain: true,
+            dataType: 'json',
+            headers: {
+              'Authorization': 'Bearer ' + callbackData.access_token
             }
+          }).done(function(data) {
+            $('.oauth-protected-resource').text(JSON.stringify(data));
+          }).fail(function() {
+            $('.oauth-protected-resource').text('Error while fetching the protected resource');
           });
+
         }
+      }
 
-        function handleFetchResourceClick(ev) {
-          if (callbackData != null ) {
+      function processCallback(h) {
+        var whitelist = ['code', 'state']; // for parameters
 
-            $.ajax({
-              url: protectedResource,
-              type: 'POST',
-              crossDomain: true,
-              dataType: 'json',
-              headers: {
-                'Authorization': 'Bearer ' + callbackData.access_token
-              }
-            }).done(function(data) {
-              $('.oauth-protected-resource').text(JSON.stringify(data));
-            }).fail(function() {
-              $('.oauth-protected-resource').text('Error while fetching the protected resource');
-            });
+        callbackData = {};
 
+        h.split('&').forEach(function (e) {
+          var d = e.split('=');
+
+          if (whitelist.indexOf(d[0]) > -1) {
+            callbackData[d[0]] = d[1];  
           }
-        }
+        });          
 
-        function processCallback(h) {
-          var whitelist = ['code', 'state']; // for parameters
-
-          callbackData = {};
-
-          h.split('&').forEach(function (e) {
-            var d = e.split('=');
-
-            if (whitelist.indexOf(d[0]) > -1) {
-              callbackData[d[0]] = d[1];  
+        if (callbackData.state !== localStorage.getItem('oauth-state')) {
+          console.log('State DOES NOT MATCH: expected %s got %s', localStorage.getItem('oauth-state'), callbackData.state);
+          callbackData = null;
+          $('.oauth-protected-resource').text("Error state value did not match");
+        } else {
+          $.ajax({
+            url: authServer.tokenEndpoint,
+            type: 'POST',
+            crossDomain: true,
+            dataType: 'json',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'                 
+            },
+            data: {
+              grant_type: 'authorization_code',
+              code: callbackData.code,
+              client_id: client.client_id,
+              client_secret: client.client_secret,
             }
-          });          
+          }).done(function(data) {
+            $('.oauth-access-token').text(data.access_token);
+            callbackData.access_token = data.access_token;
+          }).fail(function() {
+            $('.oauth-protected-resource').text('Error while getting the access token');
+          });
 
-          if (callbackData.state !== localStorage.getItem('oauth-state')) {
-            console.log('State DOES NOT MATCH: expected %s got %s', localStorage.getItem('oauth-state'), callbackData.state);
-            callbackData = null;
-            $('.oauth-protected-resource').text("Error state value did not match");
-          } else {
-            //$('.oauth-access-token').text(callbackData.access_token);
-            //console.log('authorization code is %s',callbackData.code);
-            $.ajax({
-              url: authServer.tokenEndpoint,
-              type: 'POST',
-              crossDomain: true,
-              dataType: 'json',
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'                 
-              },
-              data: {
-                grant_type: 'authorization_code',
-                code: callbackData.code,
-                client_id: client.client_id,
-                client_secret: client.client_secret,
-              }
-            }).done(function(data) {
-              $('.oauth-access-token').text(data.access_token);
-              callbackData.access_token = data.access_token;
-            }).fail(function() {
-              $('.oauth-protected-resource').text('Error while getting the access token');
-            });
-
-          }
         }
+      }
 
-        // fill placeholder on UI
-        $('.oauth-scope-value').text(client.scope);
+      // fill placeholder on UI
+      $('.oauth-scope-value').text(client.scope);
 
-        // UI button click handler
-        $('.oauth-authorize').on('click', handleAuthorizationRequestClick);
-        $('.oauth-fetch-resource').on('click', handleFetchResourceClick);
-
-      }());
+      // UI button click handler
+      $('.oauth-authorize').on('click', handleAuthorizationRequestClick);
+      $('.oauth-fetch-resource').on('click', handleFetchResourceClick);
+ 
             
     </script>
   </body>
