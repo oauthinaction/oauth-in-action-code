@@ -151,11 +151,6 @@
         // UI button click handler
         $('.oauth-authorize').on('click', handleAuthorizationRequestClick);
         $('.oauth-fetch-resource').on('click', handleFetchResourceClick);
-        
-        // we got a hash as a callback
-        if (location.hash) {
-          processCallback(location.hash.substring(1));
-        }
 
       }());
             
