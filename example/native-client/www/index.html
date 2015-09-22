@@ -56,13 +56,15 @@
         // client information
         var client = {
           'client_id': 'native-client-1',
+          'client_secret': 'oauth-native-secret-1',
           'redirect_uris': ['http://localhost:9000'],
           'scope': 'openid profile email address phone'
         };
 
         // authorization server information
         var authServer = {
-          authorizationEndpoint: 'http://localhost:9001/authorize'
+          authorizationEndpoint: 'http://localhost:9001/authorize',
+          tokenEndpoint: 'http://localhost:9001/token'
         };
 
         var protectedResource = 'http://localhost:9002/resource';
@@ -86,7 +88,7 @@
 
           var redirectUri = client.redirect_uris[0];
           var url = authServer.authorizationEndpoint + '?' +
-                  'response_type=token' +
+                  'response_type=code' +
                   '&state=' + state +
                   '&scope=' + encodeURIComponent(client.scope) +
                   '&client_id=' + encodeURIComponent(client.client_id) +
@@ -96,7 +98,7 @@
           popup.addEventListener('loadstart', function (e) {
             var url = e.url;
             if (url.indexOf(redirectUri) !== -1) {
-              processCallback(url.substr(url.indexOf('#') + 1));
+              processCallback(url.substr(url.indexOf('?') + 1));
               popup.close();
             }
           });
@@ -123,7 +125,7 @@
         }
 
         function processCallback(h) {
-          var whitelist = ['access_token', 'state']; // for parameters
+          var whitelist = ['code', 'state']; // for parameters
 
           callbackData = {};
 
@@ -140,8 +142,29 @@
             callbackData = null;
             $('.oauth-protected-resource').text("Error state value did not match");
           } else {
-            $('.oauth-access-token').text(callbackData.access_token);
-            console.log('access_token: ', callbackData.access_token);
+            //$('.oauth-access-token').text(callbackData.access_token);
+            //console.log('authorization code is %s',callbackData.code);
+            $.ajax({
+              url: authServer.tokenEndpoint,
+              type: 'POST',
+              crossDomain: true,
+              dataType: 'json',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'                 
+              },
+              data: {
+                grant_type: 'authorization_code',
+                code: callbackData.code,
+                client_id: client.client_id,
+                client_secret: client.client_secret,
+              }
+            }).done(function(data) {
+              $('.oauth-access-token').text(data.access_token);
+              callbackData.access_token = data.access_token;
+            }).fail(function() {
+              $('.oauth-protected-resource').text('Error while getting the access token');
+            });
+
           }
         }
 
