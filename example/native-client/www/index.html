@@ -5,10 +5,10 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <title>OAuth in Action: OAuth Client</title>
+    <title>OAuth in Action: OAuth Native Client</title>
 
     <!-- Bootstrap -->
-  <link rel="stylesheet" href="css/bootstrap-3.3.5.min.css">
+ <link href="css/bootstrap.min.css" rel="stylesheet">
   <style>
   body {
     padding-top: 60px;
@@ -18,24 +18,27 @@
   }
   </style>
   <script type="text/javascript" src="cordova.js"></script>
+   <script src="js/bootstrap.min.js"></script>
   </head>
   <body>
 
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container">
         <div class="navbar-header">
-          <a class="navbar-brand" href="/">OAuth in Action: <span class="label label-primary">OAuth Client</label></a>
+          <a class="navbar-brand" href="/">OAuth in Action: <span class="label label-primary">OAuth Native Client</label></a>
         </div>
       </div>
     </nav>
 
     <div class="container">
 
-      <div class="jumbotron">
-      <p>Scope value: <span class="label label-danger oauth-scope-value"></span></p>
-      <p>Access token value: <span class="label label-danger oauth-access-token"></span></p>
-      <button class="btn btn-default oauth-authorize" type="button">Get OAuth Token</button> 
-      <button class="btn btn-default oauth-fetch-resource" type="button">Get Protected Resource</button>
+      <div style="margin: 30px 0">
+      <p>Scope value: <br><span class="label label-danger oauth-scope-value"></span></p>
+      <p>Access token value: <br><span class="label label-danger oauth-access-token"></span></p>
+      <div style="margin-top: 30px; text-align: center">
+      <button class="btn btn-default oauth-authorize btn-sm" type="button">Get OAuth Token</button> 
+      <button class="btn btn-default oauth-fetch-resource  btn-sm" type="button">Get Protected Resource</button>
+    </div>
       </div>
       <div class="jumbotron">
       <h2>Data from protected resource:</h2>
