@@ -1,0 +1,32 @@
+body {
+      margin: 0;
+      padding: 0;
+
+      font: normal 16px/1.4em Helvetica, sans-serif;
+      background-image: url(../img/0.jpeg);
+      background-position: center 50px;
+      background-repeat: no-repeat;
+    }
+    header {
+      height: 50px;
+
+      font-size: 170%;
+      line-height: 50px;
+      color: #fff;
+      text-align: center;
+
+      background-color: #223;
+      
+    }
+    .page {
+      padding: 0 30px;
+      
+    }
+    .block {
+      margin: 15px 0;
+      border-radius: 10px;
+      padding: 20px;
+
+      color: #fff;
+
+      background: rgba(0,0,0,0.5);
