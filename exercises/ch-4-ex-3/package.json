@@ -1,0 +1,16 @@
+{
+  "dependencies": {
+    "express": "^4.13.1",
+	"sync-request": "^2.0.1",
+	"body-parser": "^1.13.2",
+	"underscore": "^1.8.3",
+	"underscore.string": "^3.1.1",
+	"consolidate": "^0.13.1",
+	"qs": "^4.0.0",
+	"randomstring": "^1.0.7",
+	"nosql": "^3.0.3",
+	"base64url": "^1.0.4",
+	"cors": "^2.7.1",
+	"jsrsasign": "^5.0.0"
+  }
+}
