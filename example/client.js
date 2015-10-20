@@ -6,7 +6,7 @@ var qs = require("qs");
 var querystring = require('querystring');
 var cons = require('consolidate');
 var randomstring = require("randomstring");
-var jose = require('./lib/jsrsasign.js');
+var jose = require('jsrsasign');
 var base64url = require('base64url');
 
 

@@ -9,7 +9,7 @@ var qs = require("qs");
 var __ = require('underscore');
 __.string = require('underscore.string');
 var base64url = require('base64url');
-var jose = require('./lib/jsrsasign.js');
+var jose = require('jsrsasign');
 
 var app = express();
 

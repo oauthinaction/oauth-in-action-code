@@ -9,7 +9,7 @@ var querystring = require('querystring');
 var request = require("sync-request");
 var __ = require('underscore');
 var base64url = require('base64url');
-var jose = require('./lib/jsrsasign.js');
+var jose = require('jsrsasign');
 var cors = require('cors');
 
 var app = express();
