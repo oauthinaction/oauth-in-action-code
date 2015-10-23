@@ -183,11 +183,18 @@ app.post("/token", function(req, res){
 			delete codes[req.body.code]; // burn our code, it's been used
 			if (code.authorizationEndpointRequest.client_id == clientId) {
 
-				var access_token = randomstring.generate();
-				nosql.insert({ access_token: access_token, client_id: clientId });
-
-				var token_response = { access_token: access_token, token_type: 'Bearer' };
+				/*
+				 * Generate a refresh token and return it along side the access token
+				 */
 				
+				var access_token = randomstring.generate();
+				var refresh_token = randomstring.generate();
+
+				nosql.insert({ access_token: access_token, client_id: clientId });
+				nosql.insert({ refresh_token: refresh_token, client_id: clientId });
+
+				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: refresh_token };
+
 				res.status(200).json(token_response);
 				console.log('Issued tokens for code %s', req.body.code);
 				
@@ -202,6 +209,12 @@ app.post("/token", function(req, res){
 			res.status(400).json({error: 'invalid_grant'});
 			return;
 		}
+
+
+	/*
+	 * Issue a refresh token in response to the 'refresh_token' grant type
+	 */
+		
 	} else {
 		console.log('Unknown grant type %s', req.body.grant_type);
 		res.status(400).json({error: 'unsupported_grant_type'});
