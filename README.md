@@ -2,6 +2,8 @@
 
 ![Cover of OAuth 2 in Action](https://images.manning.com/255/340/resize/book/b/16faa4f-72db-4fdc-be33-c9c3400aae7f/Richer-OAuth2-HI-MEAP.png)
 
+https://www.manning.com/books/oauth-2-in-action
+
 ## About the book
 
 Think of OAuth 2 like the web version of a valet key. This HTTP-based security protocol allows the users of a service to enable applications to use that service on their behalf without handing over full control. Web and mobile apps can securely access information from other servers for these users, enabling you to give your users functionality and services from other sites. Instead of unsafe password-sharing, OAuth offers a much more secure delegation protocol. OAuth is used everywhere, from large providers like Facebook and Google, to small APIs at startups, and even cloud services, it’s the worldwide standard. OAuth 2 is the must-know security protocol on the web today.
