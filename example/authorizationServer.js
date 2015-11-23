@@ -564,7 +564,7 @@ app.post('/introspect', function(req, res) {
 	
 });
 
-var checkClientMetadata = function (req) {
+var checkClientMetadata = function (req, res) {
 	var reg = {};
 
 	if (!req.body.token_endpoint_auth_method) {
@@ -644,7 +644,7 @@ var checkClientMetadata = function (req) {
 
 app.post('/register', function (req, res){
 
-	var reg = checkClientMetadata(req);
+	var reg = checkClientMetadata(req, res);
 	if (!reg) {
 		return;
 	}
@@ -709,7 +709,7 @@ app.put('/register/:clientId', validateConfigurationEndpointRequest, function(re
 		res.status(400).json({error: 'invalid_client_metadata'});
 	}
 
-	var reg = checkClientMetadata(req);
+	var reg = checkClientMetadata(req, res);
 	if (!reg) {
 		return;
 	}
