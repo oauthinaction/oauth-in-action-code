@@ -48,8 +48,9 @@
 
       // client information
       var client = {
-        'client_id': 'native-client-1',
-        'client_secret': 'oauth-native-secret-1',
+        'client_name': 'native-client-1',
+        'client_id': '',
+        'client_secret': '',
         'redirect_uris': ['mynativeapp://'],
         'scope': 'openid profile email address phone'
       };
@@ -61,7 +62,7 @@
       };
 
       var protectedResource = 'http://localhost:9002/resource';
-
+      
       function generateState(len) {
         var ret = '';
         var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
