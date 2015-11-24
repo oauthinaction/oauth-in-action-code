@@ -1,3 +1,4 @@
 database.nosql
 example/native-client/platforms/
 example/native-client/plugins/
+.DS_Store
