@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <title>OAuth in Action: OAuth Client</title>
+    <title>OAuth in Action: OAuth Authorization Server</title>
 
     <!-- Bootstrap -->
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
@@ -14,7 +14,7 @@
 	  padding-top: 60px;
 	}
 	.navbar-inverse {
-		background-color: #223;
+		background-color: #322;
 	}
 	</style>
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
@@ -29,7 +29,7 @@
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container">
         <div class="navbar-header">
-          <a class="navbar-brand" href="/">OAuth in Action: <span class="label label-primary">OAuth Client</label></a>
+          <a class="navbar-brand" href="/">OAuth in Action: <span class="label label-danger">OAuth Authorization Server</label></a>
         </div>
       </div>
     </nav>
@@ -37,12 +37,8 @@
     <div class="container">
 
       <div class="jumbotron">
-		  <h3>Get an access token</h3>
-		  <form class="form" action="/username_password" method="POST">
-			  <input type="text" name="username" placeholder="username">
-			  <input type="password" name="password" placeholder="password">
-			  <input type="submit" class="btn btn-warning" href="/" value="Get an access token" >
-		  </form>
+		  <h2 class="text-danger">Error</h2>
+		  <%- error %>
       </div>
 
     </div><!-- /.container -->

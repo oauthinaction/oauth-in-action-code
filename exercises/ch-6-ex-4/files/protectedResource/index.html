@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <title>OAuth in Action: OAuth Client</title>
+    <title>OAuth in Action: OAuth Protected Resource</title>
 
     <!-- Bootstrap -->
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
@@ -14,7 +14,7 @@
 	  padding-top: 60px;
 	}
 	.navbar-inverse {
-		background-color: #223;
+		background-color: #232;
 	}
 	</style>
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
@@ -29,7 +29,7 @@
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container">
         <div class="navbar-header">
-          <a class="navbar-brand" href="/">OAuth in Action: <span class="label label-primary">OAuth Client</label></a>
+          <a class="navbar-brand" href="/">OAuth in Action: <span class="label label-success">OAuth Protected Resource</span></a>
         </div>
       </div>
     </nav>
@@ -37,11 +37,7 @@
     <div class="container">
 
       <div class="jumbotron">
-		  <p>Access token value: <span class="label label-danger"><%- access_token ? access_token : 'NONE' %></span></p>
-		  <p>Scope value: <span class="label label-danger"><%- scope ? scope : 'NONE' %></span></p>
-		  <p>Refresh token value: <span class="label label-danger"><%- refresh_token ? refresh_token : 'NONE' %></span></p>
-		  <a class="btn btn-default" href="/authorize">Get OAuth Token</a> 
-		  <a class="btn btn-default" href="/fetch_resource">Get Protected Resource</a> 
+		  To access the resource, send a <code>POST</code> request to <code>http://localhost:9002/resource</code> and include a valid OAuth token.
       </div>
 
     </div><!-- /.container -->
