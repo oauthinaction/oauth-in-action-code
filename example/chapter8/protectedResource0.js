@@ -238,6 +238,26 @@ app.post("/resource", cors(), getAccessToken, function(req, res){
 	
 });
 
+app.get("/helloWorld", cors(), getAccessToken, function(req, res){
+	if (req.access_token) {
+
+		if (req.query.language == "en") {
+			res.send('Hello World');
+		} else if (req.query.language == "de") {
+			res.send('Hallo Welt');
+		} else if (req.query.language == "it") {
+			res.send('Ciao Mondo');
+		} else if (req.query.language == "fr") {
+			res.send('Bonjour monde');
+		} else if (req.query.language == "es") {
+			res.send('Hola mundo');
+		} else {
+			res.send("Error, invalid language: "+ req.query.language);
+		}
+	}
+	
+});
+
 var server = app.listen(9002, 'localhost', function () {
   var host = server.address().address;
   var port = server.address().port;
