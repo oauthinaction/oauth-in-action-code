@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>OAuth in Action: OAuth Client</title>
+
+    <!-- Bootstrap -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+  <style>
+  body {
+    padding-top: 60px;
+  }
+  .navbar-inverse {
+    background-color: #223;
+  }
+  </style>
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="/">OAuth in Action: <span class="label label-primary">OAuth Client</label></a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container">
+
+      <div class="jumbotron">
+      <p>Scope value: <span class="label label-danger oauth-scope-value"></span></p>
+      <p>Access token value: <span class="label label-danger oauth-access-token"></span></p>
+      <button class="btn btn-default oauth-authorize" type="button">Get OAuth Token</button> 
+      <button class="btn btn-default oauth-fetch-resource" type="button">Get Protected Resource</button>
+      </div>
+      <div class="jumbotron">
+      <h2>Data from protected resource:</h2>
+      <pre><span class="oauth-protected-resource"</pre>
+      </div>
+    </div><!-- /.container -->
+
+  
+  
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+
+    <script>
+
+      (function () {
+        var callbackData;
+
+        // client information
+        var client = {
+          'client_id': 'oauth-client-1',
+          'redirect_uris': ['http://localhost:9000/callback'],
+          'scope': 'openid profile email address phone'
+        };
+
+        // authorization server information
+        var authServer = {
+          authorizationEndpoint: 'http://localhost:9001/authorize'
+        };
+
+        var protectedResource = 'http://localhost:9002/resource';
+
+        function generateState(len) {
+          var ret = '';
+          var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+          for (var i=0; i < len; i++) {
+            // add random character
+            ret += possible.charAt(Math.floor(Math.random() * possible.length));  
+          }
+          
+          return ret;
+        }  
+
+        function handleAuthorizationRequestClick(ev) {
+          var state = generateState(32);
+
+          localStorage.setItem('oauth-state', state);
+
+          location.href = authServer.authorizationEndpoint + '?' + 
+            'response_type=token' +
+            '&state=' + state +
+            '&scope=' + encodeURIComponent(client.scope) + 
+            '&client_id=' + encodeURIComponent(client.client_id) +
+            '&redirect_uri=' + encodeURIComponent(client.redirect_uris[0]);
+        }
+
+        function handleFetchResourceClick(ev) {
+          if (callbackData != null ) {
+
+            $.ajax({
+              url: protectedResource,
+              type: 'POST',
+              crossDomain: true,
+              dataType: 'json',
+              headers: {
+                'Authorization': 'Bearer ' + callbackData.access_token
+              }
+            }).done(function(data) {
+              $('.oauth-protected-resource').text(JSON.stringify(data));
+            }).fail(function() {
+              $('.oauth-protected-resource').text('Error while fetching the protected resource');
+            });
+
+          }
+        }
+
+        function processCallback() {
+          var h = location.hash.substring(1);
+          var whitelist = ['access_token', 'state']; // for parameters
+
+          callbackData = {};
+
+          h.split('&').forEach(function (e) {
+            var d = e.split('=');
+
+            if (whitelist.indexOf(d[0]) > -1) {
+              callbackData[d[0]] = d[1];  
+            }
+          });
+
+          if (callbackData.state !== localStorage.getItem('oauth-state')) {
+            console.log('State DOES NOT MATCH: expected %s got %s', localStorage.getItem('oauth-state'), callbackData.state);
+            callbackData = null;
+            $('.oauth-protected-resource').text("Error state value did not match");
+          } else {
+            $('.oauth-access-token').text(callbackData.access_token);
+            console.log('access_token: ', callbackData.access_token);
+          }
+        }
+
+        // fill placeholder on UI
+        $('.oauth-scope-value').text(client.scope);
+
+        // UI button click handler
+        $('.oauth-authorize').on('click', handleAuthorizationRequestClick);
+        $('.oauth-fetch-resource').on('click', handleFetchResourceClick);
+        
+        // we got a hash as a callback
+        if (location.hash) {
+          processCallback();
+        }
+
+      }());
+            
+    </script>
+  </body>
+</html>
