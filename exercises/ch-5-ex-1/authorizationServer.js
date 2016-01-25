@@ -5,11 +5,8 @@ var randomstring = require("randomstring");
 var cons = require('consolidate');
 var nosql = require('nosql').load('database.nosql');
 var querystring = require('querystring');
-var qs = require("qs");
 var __ = require('underscore');
 __.string = require('underscore.string');
-var base64url = require('base64url');
-var jose = require('./lib/jsrsasign.js');
 
 var app = express();
 
@@ -33,12 +30,6 @@ var clients = [
   /*
    * Enter client information here
    */
-	{
-		"client_id": "oauth-client-1",
-		"client_secret": "oauth-client-secret-1",
-		"redirect_uris": ["http://localhost:9000/callback"],
-		"scope": "foo"
-	}
 ];
 
 var codes = {};
@@ -80,7 +71,7 @@ app.post("/token", function(req, res){
 	 * Process the request, issue an access token
 	 */
 
-	res.render('error', {error: 'Not implemented'});
+	res.status(501).json({ error: 'not_implemented' });
 	
 });
 

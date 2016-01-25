@@ -5,11 +5,8 @@ var randomstring = require("randomstring");
 var cons = require('consolidate');
 var nosql = require('nosql').load('database.nosql');
 var querystring = require('querystring');
-var qs = require("qs");
 var __ = require('underscore');
 __.string = require('underscore.string');
-var base64url = require('base64url');
-var jose = require('./lib/jsrsasign.js');
 
 var app = express();
 
@@ -208,7 +205,7 @@ app.post("/token", function(req, res){
 		return;
 	}
 
-);
+});
 
 app.use('/', express.static('files/authorizationServer'));
 

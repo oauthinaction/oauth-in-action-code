@@ -6,9 +6,6 @@ var qs = require("qs");
 var querystring = require('querystring');
 var cons = require('consolidate');
 var randomstring = require("randomstring");
-var jose = require('./lib/jsrsasign.js');
-var base64url = require('base64url');
-
 
 var app = express();
 
@@ -34,7 +31,7 @@ var client = {
 	"client_id": "oauth-client-1",
 	"client_secret": "oauth-client-secret-1",
 	"redirect_uris": ["http://localhost:9000/callback"],
-	"scope": "openid profile email address phone"
+	"scope": ""
 };
 
 //var client = {};
@@ -46,7 +43,6 @@ var state = null;
 var access_token = null;
 var refresh_token = null;
 var scope = null;
-var id_token = null;
 
 app.get('/', function (req, res) {
 	res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope});

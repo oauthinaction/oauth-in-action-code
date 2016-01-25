@@ -1,15 +1,7 @@
 var express = require("express");
-var url = require("url");
 var bodyParser = require('body-parser');
-var randomstring = require("randomstring");
 var cons = require('consolidate');
 var nosql = require('nosql').load('database.nosql');
-var qs = require("qs");
-var querystring = require('querystring');
-var request = require("sync-request");
-var __ = require('underscore');
-var base64url = require('base64url');
-var jose = require('./lib/jsrsasign.js');
 var cors = require('cors');
 
 var app = express();

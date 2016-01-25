@@ -84,7 +84,7 @@ app.post('/words', getAccessToken, requireAccessToken, function(req, res) {
 app.delete('/words', getAccessToken, requireAccessToken, function(req, res) {
 	if (__.contains(req.access_token.scope, 'delete')) {
 		savedWords.pop();
-		res.status(201).end();
+		res.status(204).end();
 	} else {
 		res.set('WWW-Authenticate', 'Bearer realm=localhost:9002, error="insufficient_scope", scope="delete"');
 		res.status(403);
