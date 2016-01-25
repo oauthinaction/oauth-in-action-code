@@ -41,7 +41,15 @@
 		  <p>Scope value: <span class="label label-danger"><%- scope ? scope : 'NONE' %></span></p>
 		  <p>Refresh token value: <span class="label label-danger"><%- refresh_token ? refresh_token : 'NONE' %></span></p>
 		  <a class="btn btn-default" href="/authorize">Get OAuth Token</a> 
-		  <a class="btn btn-default" href="/fetch_resource">Get Protected Resource</a> 
+      <form action="/fetch_resource">
+        <input class="btn btn-default"  type="submit" value="Greet in">
+        <input type="radio" name="language" value="en" checked>English
+        <input type="radio" name="language" value="de">German
+        <input type="radio" name="language" value="it">Italian
+        <input type="radio" name="language" value="fr">French
+        <input type="radio" name="language" value="es">Spanish
+    </form>
+		  
       </div>
 
     </div><!-- /.container -->

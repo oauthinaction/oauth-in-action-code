@@ -47,7 +47,7 @@ var client = {
 
 //var client = {};
 
-var protectedResource = 'http://localhost:9002/helloWorld?language=en';
+var protectedResource = 'http://localhost:9002/helloWorld';
 var wordApi = 'http://localhost:9002/words';
 var produceApi = 'http://localhost:9002/produce';
 var favoritesApi = 'http://localhost:9002/favorites';
@@ -283,7 +283,9 @@ app.get('/fetch_resource', function(req, res) {
 		'Content-Type': 'application/x-www-form-urlencoded'
 	};
 	
-	var resource = request('GET', protectedResource,
+	var protectedResourceEndpoint = protectedResource+"?language="+req.query.language;
+	console.log("protectedResourceEndpoint %s", protectedResourceEndpoint);
+	var resource = request('GET', protectedResourceEndpoint,
 		{headers: headers}
 	);
 	
