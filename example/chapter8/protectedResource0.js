@@ -152,95 +152,11 @@ var requireAccessToken = function(req, res, next) {
 	} else {
 		res.status(401).end();
 	}
-};
-
-
-var savedWords = [];
-
-app.get('/words', getAccessToken, requireAccessToken, function(req, res) {
-	if (__.contains(req.access_token.scope, 'read')) {
-		res.json({words: savedWords.join(' '), timestamp: Date.now()});
-	} else {
-		res.set('WWW-Authenticate', 'Bearer realm=localhost:9002, error="insufficient_scope", scope="read"');
-		res.status(403);
-	}
-});
-
-app.post('/words', getAccessToken, requireAccessToken, function(req, res) {
-	if (__.contains(req.access_token.scope, 'write')) {
-		if (req.body.word) {
-			savedWords.push(req.body.word);
-		}
-		res.status(201).end();
-	} else {
-		res.set('WWW-Authenticate', 'Bearer realm=localhost:9002, error="insufficient_scope", scope="write"');
-		res.status(403);
-	}
-});
-
-app.delete('/words', getAccessToken, requireAccessToken, function(req, res) {
-	if (__.contains(req.access_token.scope, 'delete')) {
-		savedWords.pop();
-		res.status(201).end();
-	} else {
-		res.set('WWW-Authenticate', 'Bearer realm=localhost:9002, error="insufficient_scope", scope="delete"');
-		res.status(403);
-	}
-});
-
-app.get('/produce', getAccessToken, requireAccessToken, function(req, res) {
-	var produce = {fruit: [], veggies: [], meats: []};
-	if (__.contains(req.access_token.scope, 'fruit')) {
-		produce.fruit = ['apple', 'banana', 'kiwi'];
-	}
-	if (__.contains(req.access_token.scope, 'veggies')) {
-		produce.veggies = ['lettuce', 'onion', 'potato'];
-	}
-	if (__.contains(req.access_token.scope, 'meats')) {
-		produce.meats = ['bacon', 'steak', 'chicken breast'];
-	}
-	console.log('Sending produce: ', produce);
-	res.json(produce);
-});
-
-var aliceFavorites = {
-	'movies': ['The Multidmensional Vector', 'Space Fights', 'Jewelry Boss'],
-	'foods': ['bacon', 'pizza', 'bacon pizza'],
-	'music': ['techno', 'industrial', 'alternative']
-};
-
-var bobFavories = {
-	'movies': ['An Unrequited Love', 'Several Shades of Turquoise', 'Think Of The Children'],
-	'foods': ['bacon', 'kale', 'gravel'],
-	'music': ['baroque', 'ukulele', 'baroque ukulele']
-};
-
-app.get('/favorites', getAccessToken, requireAccessToken, function(req, res) {
-	if (req.access_token.user == 'alice') {
-		res.json({user: 'Alice', favorites: aliceFavorites});
-	} else if (req.access_token.user == 'bob') {
-		res.json({user: 'Bob', favorites: bobFavorites});
-	} else {
-		var unknown = {user: 'Unknown', favorites: {movies: [], foods: [], music: []}};
-		res.json(unknown);
-	}
-});
-
-app.options('/resource', cors());
-
-app.post("/resource", cors(), getAccessToken, function(req, res){
-
-	if (req.access_token) {
-		res.json(resource);
-	} else {
-		res.status(401).end();
-	}
-	
-});
+}; 
 
 app.get("/helloWorld", cors(), getAccessToken, function(req, res){
 	if (req.access_token) {
-
+		//text/html
 		if (req.query.language == "en") {
 			res.send('Hello World');
 		} else if (req.query.language == "de") {

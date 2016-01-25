@@ -42,12 +42,12 @@ var client = {
 	"client_id": "oauth-client-1",
 	"client_secret": "oauth-client-secret-1",
 	"redirect_uris": ["http://localhost:9000/callback"],
-	"scope": "openid profile email address phone"
+	"scope": "greeting"
 };
 
 //var client = {};
 
-var protectedResource = 'http://localhost:9002/resource';
+var protectedResource = 'http://localhost:9002/helloWorld?language=en';
 var wordApi = 'http://localhost:9002/words';
 var produceApi = 'http://localhost:9002/produce';
 var favoritesApi = 'http://localhost:9002/favorites';
@@ -283,12 +283,12 @@ app.get('/fetch_resource', function(req, res) {
 		'Content-Type': 'application/x-www-form-urlencoded'
 	};
 	
-	var resource = request('POST', protectedResource,
+	var resource = request('GET', protectedResource,
 		{headers: headers}
 	);
 	
 	if (resource.statusCode >= 200 && resource.statusCode < 300) {
-		var body = JSON.parse(resource.getBody());
+		var body = resource.getBody();
 		res.render('data', {resource: body});
 		return;
 	} else {
@@ -303,125 +303,6 @@ app.get('/fetch_resource', function(req, res) {
 		}
 	}
 	
-	
-});
-
-app.get('/words', function (req, res) {
-
-	res.render('words', {words: '', timestamp: 0, result: null});
-	
-});
-
-app.get('/get_words', function (req, res) {
-
-	var headers = {
-		'Authorization': 'Bearer ' + access_token,
-		'Content-Type': 'application/x-www-form-urlencoded'
-	};
-	
-	var resource = request('GET', wordApi,
-		{headers: headers}
-	);
-	
-	if (resource.statusCode >= 200 && resource.statusCode < 300) {
-		var body = JSON.parse(resource.getBody());
-		res.render('words', {words: body.words, timestamp: body.timestamp, result: 'get'});
-		return;
-	} else {
-		res.render('words', {words: '', timestamp: 0, result: 'noget'});
-		return;
-	}
-	
-	
-	
-});
-
-app.get('/add_word', function (req, res) {
-	
-	var headers = {
-		'Authorization': 'Bearer ' + access_token,
-		'Content-Type': 'application/x-www-form-urlencoded'
-	};
-	
-	var form_body = qs.stringify({word: req.query.word});
-	
-	var resource = request('POST', wordApi,
-		{headers: headers, body: form_body}
-	);
-	
-	if (resource.statusCode >= 200 && resource.statusCode < 300) {
-		res.render('words', {words: '', timestamp: 0, result: 'add'});
-		return;
-	} else {
-		res.render('words', {words: '', timestamp: 0, result: 'noadd'});
-		return;
-	}
-	
-
-});
-
-app.get('/delete_word', function (req, res) {
-
-	var headers = {
-		'Authorization': 'Bearer ' + access_token,
-		'Content-Type': 'application/x-www-form-urlencoded'
-	};
-	
-	var resource = request('DELETE', wordApi,
-		{headers: headers}
-	);
-	
-	if (resource.statusCode >= 200 && resource.statusCode < 300) {
-		res.render('words', {words: '', timestamp: 0, result: 'rm'});
-		return;
-	} else {
-		res.render('words', {words: '', timestamp: 0, result: 'norm'});
-		return;
-	}
-	
-	
-});
-
-app.get('/produce', function(req, res) {
-	var headers = {
-		'Authorization': 'Bearer ' + access_token,
-		'Content-Type': 'application/x-www-form-urlencoded'
-	};
-	
-	var resource = request('GET', produceApi,
-		{headers: headers}
-	);
-	
-	if (resource.statusCode >= 200 && resource.statusCode < 300) {
-		var body = JSON.parse(resource.getBody());
-		res.render('produce', {scope: scope, data: body});
-		return;
-	} else {
-		res.render('produce', {scope: scope, data: {fruits: [], veggies: [], meats: []}});
-		return;
-	}
-	
-});
-
-app.get('/favorites', function(req, res) {
-	var headers = {
-		'Authorization': 'Bearer ' + access_token,
-		'Content-Type': 'application/x-www-form-urlencoded'
-	};
-	
-	var resource = request('GET', favoritesApi,
-		{headers: headers}
-	);
-	
-	if (resource.statusCode >= 200 && resource.statusCode < 300) {
-		var body = JSON.parse(resource.getBody());
-		console.log('Got data: ', body);
-		res.render('favorites', {scope: scope, data: body});
-		return;
-	} else {
-		res.render('favorites', {scope: scope, data: {user: '', favorites: {movies: [], foods: [], music: []}}});
-		return;
-	}
 	
 });
 
