@@ -172,7 +172,7 @@ app.get("/helloWorld", cors(), getAccessToken, function(req, res){
 		} else if (req.query.language == "es") {
 			resource.greeting ='Hola mundo';
 		} else {
-			resource.greeting = "Error, invalid language: "+ req.query.language;
+			resource.greeting = "Error, invalid language: "+ querystring.escape(req.query.language);
 		}
 		res.json(resource);
 	}
