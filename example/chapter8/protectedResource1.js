@@ -10,7 +10,6 @@ var request = require("sync-request");
 var __ = require('underscore');
 var base64url = require('base64url');
 var jose = require('jsrsasign');
-var cors = require('cors');
 
 var app = express();
 
@@ -22,7 +21,6 @@ app.set('views', 'files/protectedResource');
 app.set('json spaces', 4);
 
 app.use('/', express.static('files/protectedResource'));
-app.use(cors());
 
 var resource = {
 	"name": "Protected Resource",

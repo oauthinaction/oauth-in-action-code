@@ -64,7 +64,7 @@
         var client = {
           'client_id': 'oauth-client-1',
           'redirect_uris': ['http://localhost:9000/callback'],
-          'scope': 'openid profile email address phone'
+          'scope': 'greeting'
         };
 
         // authorization server information
@@ -72,7 +72,7 @@
           authorizationEndpoint: 'http://localhost:9001/authorize'
         };
 
-        var protectedResource = 'http://localhost:9002/resource';
+        var protectedResource = 'http://localhost:9002/helloWorld';
 
         function generateState(len) {
           var ret = '';
@@ -104,7 +104,7 @@
 
             $.ajax({
               url: protectedResource,
-              type: 'POST',
+              type: 'GET',
               crossDomain: true,
               dataType: 'json',
               headers: {
