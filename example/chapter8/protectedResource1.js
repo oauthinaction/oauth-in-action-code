@@ -238,9 +238,8 @@ app.post("/resource", cors(), getAccessToken, function(req, res){
 	
 });
 
-app.get("/helloWorld", cors(), getAccessToken, function(req, res){
+app.get("/helloWorld", getAccessToken, function(req, res){
 	if (req.access_token) {
-		//no content tyoe
 		if (req.query.language == "en") {
 			res.end('Hello World');
 		} else if (req.query.language == "de") {

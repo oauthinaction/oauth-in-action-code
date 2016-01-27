@@ -154,7 +154,7 @@ var requireAccessToken = function(req, res, next) {
 	}
 }; 
 
-app.get("/helloWorld", cors(), getAccessToken, function(req, res){
+app.get("/helloWorld", getAccessToken, function(req, res){
 	if (req.access_token) {
 		//text/html
 		if (req.query.language == "en") {
