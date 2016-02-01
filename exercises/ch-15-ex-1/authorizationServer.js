@@ -213,7 +213,7 @@ app.post("/token", function(req, res){
 					var access_token_key = key.toJSON(true); // get keypair in JWK format
 					var access_token_public_key = key.toJSON(); // get public key in JWK format
 				
-					var token_response = { access_token: access_token, access_token_key: access_token_key, token_type: 'Bearer',  refresh_token: req.body.refresh_token, scope: code.scope };
+					var token_response = { access_token: access_token, access_token_key: access_token_key, token_type: 'PoP',  refresh_token: req.body.refresh_token, scope: code.scope };
 
 					nosql.insert({ access_token: access_token, access_token_key: access_token_public_key, client_id: clientId, scope: code.scope });
 

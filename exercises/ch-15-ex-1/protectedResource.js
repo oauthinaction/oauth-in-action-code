@@ -55,11 +55,11 @@ var getAccessToken = function(req, res, next) {
 	var inToken = null;
 	if (auth && auth.toLowerCase().indexOf('pop') == 0) {
 		inToken = auth.slice('pop '.length);
-	} else if (req.body && req.body.access_token) {
+	} else if (req.body && req.body.pop_access_token) {
 		// not in the header, check in the form body
-		inToken = req.body.access_token;
-	} else if (req.query && req.query.access_token) {
-		inToken = req.query.access_token
+		inToken = req.body.pop_access_token;
+	} else if (req.query && req.query.pop_access_token) {
+		inToken = req.query.pop_access_token
 	}
 	
 	console.log('Incoming PoP: %s', inToken);
