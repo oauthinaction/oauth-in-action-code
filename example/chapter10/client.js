@@ -53,6 +53,7 @@ var produceApi = 'http://localhost:9002/produce';
 var favoritesApi = 'http://localhost:9002/favorites';
 
 var state = null;
+var code_challenge = null;
 
 var access_token = null;
 var refresh_token = null;
@@ -77,6 +78,7 @@ app.get('/authorize', function(req, res){
 	refresh_token = null;
 	scope = null;
 	state = randomstring.generate();
+	code_challenge = randomstring.generate();
 	
 	var authorizeUrl = url.parse(authServer.authorizationEndpoint, true);
 	delete authorizeUrl.search; // this is to get around odd behavior in the node URL library
@@ -85,6 +87,7 @@ app.get('/authorize', function(req, res){
 	authorizeUrl.query.client_id = client.client_id;
 	authorizeUrl.query.redirect_uri = client.redirect_uris[0];
 	authorizeUrl.query.state = state;
+	authorizeUrl.query.code_challenge = code_challenge ;
 	
 	console.log("redirect", url.format(authorizeUrl));
 	res.redirect(url.format(authorizeUrl));
@@ -145,8 +148,7 @@ app.get("/callback", function(req, res){
 	var form_data = qs.stringify({
 				grant_type: 'authorization_code',
 				code: code,
-//				client_id: client.client_id,
-//				client_secret: client.client_secret,
+				code_verifier: code_challenge,
 				redirect_uri: client.redirect_uri
 			});
 	var headers = {

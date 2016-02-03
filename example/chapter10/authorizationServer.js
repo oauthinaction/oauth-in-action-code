@@ -144,10 +144,11 @@ app.get("/authorize", function(req, res){
 		}
 		
 		var reqid = randomstring.generate(8);
+		var code_challenge = req.query.code_challenge;
 		
 		requests[reqid] = req.query;
 		
-		res.render('approve', {client: client, reqid: reqid, scope: rscope});
+		res.render('approve', {client: client, reqid: reqid, scope: rscope, code_challenge: code_challenge});
 		return;
 	}
 
@@ -171,6 +172,7 @@ app.post('/approve', function(req, res) {
 			var code = randomstring.generate(8);
 			
 			var user = req.body.user;
+			var code_challenge = req.body.code_challenge;
 		
 			var scope = __.filter(__.keys(req.body), function(s) { return __.string.startsWith(s, 'scope_'); })
 				.map(function(s) { return s.slice('scope_'.length); });
@@ -187,7 +189,7 @@ app.post('/approve', function(req, res) {
 			}
 
 			// save the code and request for later
-			codes[code] = { authorizationEndpointRequest: query, scope: scope, user: user };
+			codes[code] = { authorizationEndpointRequest: query, scope: scope, user: user, code_challenge:code_challenge };
 		
 			var urlParsed =url.parse(query.redirect_uri);
 			delete urlParsed.search; // this is a weird behavior of the URL library
@@ -370,6 +372,14 @@ app.post("/token", function(req, res){
 		if (code) {
 			delete codes[req.body.code]; // burn our code, it's been used
 			if (code.authorizationEndpointRequest.client_id == clientId) {
+
+				console.log("code challenge %s", code.code_challenge);
+				if (code.code_challenge) {
+					if (code.code_challenge != req.body.code_verifier ) {
+						res.status(400).json({error: 'iInvalid code verifier'});
+						return;
+					}
+				}
 
 				var user = userInfo[code.user];
 				if (!user) {		
