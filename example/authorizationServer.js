@@ -135,11 +135,10 @@ app.get("/authorize", function(req, res){
 		var cscope = client.scope ? client.scope.split(' ') : undefined;
 		if (__.difference(rscope, cscope).length > 0) {
 			// client asked for a scope it couldn't have
-			var urlParsed = url.parse(req.query.redirect_uri);
-			delete urlParsed.search; // this is a weird behavior of the URL library
-			urlParsed.query = urlParsed.query || {};
-			urlParsed.query.error = 'invalid_scope';
-			res.redirect(url.format(urlParsed));
+			var urlParsed = buildUrl(req.query.redirect_uri, {
+				error: 'invalid_scope'
+			});
+			res.redirect(urlParsed);
 			return;
 		}
 		
@@ -178,23 +177,21 @@ app.post('/approve', function(req, res) {
 			var cscope = client.scope ? client.scope.split(' ') : undefined;
 			if (__.difference(scope, cscope).length > 0) {
 				// client asked for a scope it couldn't have
-				var urlParsed = url.parse(query.redirect_uri);
-				delete urlParsed.search; // this is a weird behavior of the URL library
-				urlParsed.query = urlParsed.query || {};
-				urlParsed.query.error = 'invalid_scope';
-				res.redirect(url.format(urlParsed));
+				var urlParsed = buildUrl(query.redirect_uri, {
+					error: 'invalid_scope'
+				});
+				res.redirect(urlParsed);
 				return;
 			}
 
 			// save the code and request for later
 			codes[code] = { authorizationEndpointRequest: query, scope: scope, user: user };
 		
-			var urlParsed =url.parse(query.redirect_uri);
-			delete urlParsed.search; // this is a weird behavior of the URL library
-			urlParsed.query = urlParsed.query || {};
-			urlParsed.query.code = code;
-			urlParsed.query.state = query.state; 
-			res.redirect(url.format(urlParsed));
+			var urlParsed = buildUrl(query.redirect_uri, {
+				code: code,
+				state: query.state
+			});
+			res.redirect(urlParsed);
 			return;
 		} else if (query.response_type == 'token') {
 			var user = req.body.user;
@@ -205,11 +202,10 @@ app.post('/approve', function(req, res) {
 			var cscope = client.scope ? client.scope.split(' ') : undefined;
 			if (__.difference(scope, cscope).length > 0) {
 				// client asked for a scope it couldn't have
-				var urlParsed = url.parse(query.redirect_uri);
-				delete urlParsed.search; // this is a weird behavior of the URL library
-				urlParsed.query = urlParsed.query || {};
-				urlParsed.query.error = 'invalid_scope';
-				res.redirect(url.format(urlParsed));
+				var urlParsed = buildUrl(query.redirect_uri, {
+					error: 'invalid_scope'
+				});
+				res.redirect(urlParsed);
 				return;
 			}
 
@@ -224,31 +220,28 @@ app.post('/approve', function(req, res) {
 
 			var token_response = generateTokens(req, res, query.clientId, user, cscope);		
 
-			var urlParsed = url.parse(query.redirect_uri);
-			delete urlParsed.search; // this is a weird behavior of the URL library
+			var params = {};
 			if (query.state) {
-				token_response.state = query.state;
+				params.state = query.state;
 			} 				
-			urlParsed.hash = qs.stringify(token_response);
-			res.redirect(url.format(urlParsed));
+			var urlParsed = buildUrl(query.redirect_uri, params, qs.stringify(token_response));
+			res.redirect(urlParsed);
 			return;
 
 		} else {
 			// we got a response type we don't understand
-			var urlParsed =url.parse(query.redirect_uri);
-			delete urlParsed.search; // this is a weird behavior of the URL library
-			urlParsed.query = urlParsed.query || {};
-			urlParsed.query.error = 'unsupported_response_type';
-			res.redirect(url.format(urlParsed));
+			var urlParsed = buildUrl(query.redirect_uri, {
+				error: 'unsupported_response_type'
+			});
+			res.redirect(urlParsed);
 			return;
 		}
 	} else {
 		// user denied access
-		var urlParsed =url.parse(query.redirect_uri);
-		delete urlParsed.search; // this is a weird behavior of the URL library
-		urlParsed.query = urlParsed.query || {};
-		urlParsed.query.error = 'access_denied';
-		res.redirect(url.format(urlParsed));
+		var urlParsed = buildUrl(query.redirect_uri, {
+			error: 'access_denied'
+		});
+		res.redirect(urlParsed);
 		return;
 	}
 	
@@ -834,6 +827,22 @@ var userInfoEndpoint = function(req, res) {
 
 app.get('/userinfo', getAccessToken, requireAccessToken, userInfoEndpoint);
 app.post('/userinfo', getAccessToken, requireAccessToken, userInfoEndpoint);
+
+var buildUrl = function(base, options, hash) {
+	var newUrl = url.parse(base, true);
+	delete newUrl.search;
+	if (!newUrl.query) {
+		newUrl.query = {};
+	}
+	__.each(options, function(value, key, list) {
+		newUrl.query[key] = value;
+	});
+	if (hash) {
+		newUrl.hash = hash;
+	}
+	
+	return url.format(newUrl);
+};
 
 app.use('/', express.static('files/authorizationServer'));
 
