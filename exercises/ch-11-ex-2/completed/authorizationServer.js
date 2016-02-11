@@ -243,11 +243,25 @@ app.post("/token", function(req, res){
 				 * Implement a JWT-encoded token here
 				 */
 				
-				var access_token = randomstring.generate();
+				var header = { 'typ': 'JWT', 'alg': 'HS256', 'kid': 'authserver'};
+
+				var payload = {};
+				payload.iss = 'http://localhost:9001/';
+				payload.sub = code.user;
+				payload.aud = 'http://localhost:9002/';
+				payload.iat = Math.floor(Date.now() / 1000);
+				payload.exp = Math.floor(Date.now() / 1000) + (5 * 60);
+				payload.jti = randomstring.generate();
+				console.log(payload);
+
+				var stringHeader = JSON.stringify(header);
+				var stringPayload = JSON.stringify(payload);
+
+				var access_token = jose.jws.JWS.sign('HS256', stringHeader, stringPayload, new Buffer(sharedTokenSecret).toString('hex'));
 				
 				var token_response = { access_token: access_token, token_type: 'Bearer',  scope: code.scope };
 
-				nosql.insert({ access_token: access_token, access_token_key: access_token_public_key, client_id: clientId, scope: code.scope });
+				nosql.insert({ access_token: access_token, client_id: clientId, scope: code.scope });
 
 				res.status(200).json(token_response);
 				console.log('Issued tokens for code %s', req.body.code);
