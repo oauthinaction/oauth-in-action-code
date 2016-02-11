@@ -8,7 +8,6 @@ var querystring = require('querystring');
 var __ = require('underscore');
 __.string = require('underscore.string');
 var base64url = require('base64url');
-var jose = require('jsrsasign');
 
 var app = express();
 
@@ -242,7 +241,23 @@ app.post("/token", function(req, res){
 				 * Implement a JWT-encoded token here
 				 */
 				
-				var access_token = randomstring.generate();
+				var header = { 'typ': 'JWT', 'alg': 'RS256', 'kid': 'authserver'};
+
+				var payload = {};
+				payload.iss = 'http://localhost:9001/';
+				payload.sub = code.user;
+				payload.aud = 'http://localhost:9002/';
+				payload.iat = Math.floor(Date.now() / 1000);
+				payload.exp = Math.floor(Date.now() / 1000) + (5 * 60);
+				payload.jti = randomstring.generate();
+				console.log(payload);
+
+				var stringHeader = JSON.stringify(header);
+				var stringPayload = JSON.stringify(payload);
+				var encodedHeader = base64url.encode(JSON.stringify(header));
+				var encodedPayload = base64url.encode(JSON.stringify(payload));
+
+				var access_token = encodedHeader + '.' + encodedPayload + '.';
 				
 				var token_response = { access_token: access_token, token_type: 'Bearer',  scope: code.scope };
 
