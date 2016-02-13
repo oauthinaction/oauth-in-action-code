@@ -394,34 +394,78 @@ app.post('/register', function (req, res){
 });
 
 var validateConfigurationEndpointRequest = function (req, res, next) {
+	var clientId = req.params.clientId;
+	var client = getClient(clientId);
+	if (!client) {
+		res.status(404).end();
+		return;
+	}
 
- /* 
-  * Implement a filter to check for the registration access token against our incoming request
-  */
-	
+	var auth = req.headers['authorization'];
+	if (auth && auth.toLowerCase().indexOf('bearer') == 0) {
+		var regToken = auth.slice('bearer '.length);
+
+		if (regToken == client.registration_access_token) {
+			req.client = client;
+			next();
+			return;
+		} else {
+			res.status(403).end();
+			return;
+		}
+		
+	} else {
+		res.status(401).end();
+		return;
+	}
+
 };
 
 app.get('/register/:clientId', validateConfigurationEndpointRequest, function(req, res) {
-
- /*
-  * Implement the "read" request
-  */
-
+	res.status(200).json(client);
 });
 
 app.put('/register/:clientId', validateConfigurationEndpointRequest, function(req, res) {
 
- /*
-  * Implement the "update" request
-  */
+	if (req.body.client_id != client.client_id) {
+		res.status(400).json({error: 'invalid_client_metadata'});
+		return;
+	}
+	
+	if (req.body.client_secret && req.body.client_secret != client.client_secret) {
+		res.status(400).json({error: 'invalid_client_metadata'});
+	}
 
+	var reg = checkClientMetadata(req, res);
+	if (!reg) {
+		return;
+	}
+
+	__.each(client, function(value, key, list) {
+		client[key] = reg[key];
+	});
+	__.each(reg, function(value, key, list) {
+		client[key] = reg[key];
+	});
+
+	res.status(200).json(client);
+	
 });
 
 app.delete('/register/:clientId', validateConfigurationEndpointRequest, function(req, res) {
+	clients = __.reject(clients, __.matches({client_id: client.client_id}));
 
- /*
-  * Implement the "delete" request
-  */
+	nosql.remove(function(token) {
+		if (token.client_id == clientId) {
+			return true;	
+		}
+	}, function(err, count) {
+		console.log("Removed %s tokens", count);
+	});
+	
+	res.status(204).end();
+	return;
+
 	
 });
 

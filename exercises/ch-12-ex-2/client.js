@@ -38,14 +38,7 @@ var rsaKey = {
 
 // client information
 
-var client = {
-	"client_id": "oauth-client-1",
-	"client_secret": "oauth-client-secret-1",
-	"redirect_uris": ["http://localhost:9000/callback"],
-	"scope": "openid profile email address phone"
-};
-
-//var client = {};
+var client = {};
 
 var protectedResource = 'http://localhost:9002/resource';
 var wordApi = 'http://localhost:9002/words';
@@ -60,7 +53,7 @@ var scope = null;
 var id_token = null;
 
 app.get('/', function (req, res) {
-	res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope});
+	res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope, client: client });
 });
 
 app.get('/authorize', function(req, res){
@@ -99,7 +92,7 @@ var registerClient = function() {
 		grant_types: ['authorization_code'],
 		response_types: ['code'],
 		token_endpoint_auth_method: 'secret_basic',
-		scope: 'openid profile email address phone'
+		scope: 'foo bar'
 	};
 
 	var headers = {
@@ -216,7 +209,7 @@ app.get("/callback", function(req, res){
 		scope = body.scope;
 		console.log('Got scope: %s', scope);
 
-		res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope});
+		res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope, client: client });
 	} else {
 		res.render('error', {error: 'Unable to fetch access token, server response: ' + tokRes.statusCode})
 	}

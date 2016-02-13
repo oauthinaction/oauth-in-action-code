@@ -40,6 +40,10 @@
 		  <p>Access token value: <span class="label label-danger"><%- access_token ? access_token : 'NONE' %></span></p>
 		  <p>Scope value: <span class="label label-danger"><%- scope ? scope : 'NONE' %></span></p>
 		  <p>Refresh token value: <span class="label label-danger"><%- refresh_token ? refresh_token : 'NONE' %></span></p>
+		  <p>Client ID: <span class="label label-danger"><%- client.client_id ? client.client_id : 'NONE' %></span></p>
+		  <p>Client Secret: <span class="label label-danger"><%- client.client_secret ? client.client_secret : 'NONE' %></span></p>
+		  <p>Registration access token: <span class="label label-danger"><%- client.registration_access_token ? client.registration_access_token : 'NONE' %></span></p>
+		  <p>Client configuration management endpoint: <span class="label label-danger"><%- client.registration_client_uri ? client.registration_client_uri : 'NONE' %></span></p>
 		  <a class="btn btn-default" href="/authorize">Get OAuth Token</a> 
 		  <a class="btn btn-default" href="/fetch_resource">Get Protected Resource</a> 
       </div>
