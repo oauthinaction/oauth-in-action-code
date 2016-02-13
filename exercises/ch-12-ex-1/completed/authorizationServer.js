@@ -291,7 +291,8 @@ app.post("/token", function(req, res){
 	}
 });
 
-var checkClientMetadata = function (req, res) {
+app.post('/register', function (req, res){
+
 	var reg = {};
 
 	if (!req.body.token_endpoint_auth_method) {
@@ -366,12 +367,6 @@ var checkClientMetadata = function (req, res) {
 		reg.scope = req.body.scope;
 	}
 	
-	return reg;
-};
-
-app.post('/register', function (req, res){
-
-	var reg = checkClientMetadata(req, res);
 	if (!reg) {
 		return;
 	}
@@ -383,9 +378,6 @@ app.post('/register', function (req, res){
 
 	reg.client_id_created_at = Math.floor(Date.now() / 1000);
 	reg.client_secret_expires_at = 0;
-
-	reg.registration_access_token = randomstring.generate();
-	reg.registration_client_uri = 'http://localhost:9001/register/' + reg.client_id;
 
 	clients.push(reg);
 	
