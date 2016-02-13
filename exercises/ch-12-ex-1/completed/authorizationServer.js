@@ -371,6 +371,26 @@ var checkClientMetadata = function (req, res) {
 
 app.post('/register', function (req, res){
 
+	var reg = checkClientMetadata(req, res);
+	if (!reg) {
+		return;
+	}
+
+	reg.client_id = randomstring.generate();
+	if (__.contains(['client_secret_basic', 'client_secret_post']), reg.token_endpoint_auth_method) {
+		reg.client_secret = randomstring.generate();
+	}
+
+	reg.client_id_created_at = Math.floor(Date.now() / 1000);
+	reg.client_secret_expires_at = 0;
+
+	reg.registration_access_token = randomstring.generate();
+	reg.registration_client_uri = 'http://localhost:9001/register/' + reg.client_id;
+
+	clients.push(reg);
+	
+	res.status(201).json(reg);
+	return;
 });
 
 // clear the database

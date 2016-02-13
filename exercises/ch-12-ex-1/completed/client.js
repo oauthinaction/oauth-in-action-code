@@ -58,9 +58,13 @@ app.get('/', function (req, res) {
 
 app.get('/authorize', function(req, res){
 
-	/*
-	 * Register the client with the authorization server if necessary
-	 */
+	if (!client.client_id) {
+		registerClient();
+		if (!client.client_id) {
+			res.render('error', {error: 'Unable to register client.'});
+			return;
+		}
+	}
 	
 	access_token = null;
 	refresh_token = null;
@@ -91,10 +95,25 @@ var registerClient = function() {
 		scope: 'foo bar'
 	};
 
-	/*
-	 * Register this client with the authorization server
-	 */
-
+	var headers = {
+		'Content-Type': 'application/json',
+		'Accept': 'application/json'
+	};
+	
+	var regRes = request('POST', authServer.registrationEndpoint, 
+		{
+			body: JSON.stringify(template),
+			headers: headers
+		}
+	);
+	
+	if (regRes.statusCode == 201) {
+		var body = JSON.parse(regRes.getBody());
+		console.log("Got registered client", body);
+		if (body.client_id) {
+			client = body;
+		}
+	}
 };
 
 app.get("/callback", function(req, res){
@@ -119,6 +138,8 @@ app.get("/callback", function(req, res){
 	var form_data = qs.stringify({
 				grant_type: 'authorization_code',
 				code: code,
+//				client_id: client.client_id,
+//				client_secret: client.client_secret,
 				redirect_uri: client.redirect_uri
 			});
 	var headers = {
