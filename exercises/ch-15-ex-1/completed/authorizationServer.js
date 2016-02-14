@@ -204,10 +204,22 @@ app.post("/token", function(req, res){
 			delete codes[req.body.code]; // burn our code, it's been used
 			if (code.authorizationEndpointRequest.client_id == clientId) {
 
-				/*
-				 * Generate an access token and associated key, store them, and return them
-				 */
+				keystore.generate('RSA', 2048).then(function(key) {
+					var access_token = randomstring.generate();
+					
+					var access_token_key = key.toJSON(true); // get keypair in JWK format
+					var access_token_public_key = key.toJSON(); // get public key in JWK format
+				
+					var token_response = { access_token: access_token, access_token_key: access_token_key, token_type: 'PoP',  refresh_token: req.body.refresh_token, scope: code.scope };
 
+					nosql.insert({ access_token: access_token, access_token_key: access_token_public_key, client_id: clientId, scope: code.scope });
+
+					res.status(200).json(token_response);
+					console.log('Issued tokens for code %s', req.body.code);
+				
+					return;
+				});
+				return;
 			} else {
 				console.log('Client mismatch, expected %s got %s', code.authorizationEndpointRequest.client_id, clientId);
 				res.status(400).json({error: 'invalid_grant'});
@@ -259,10 +271,7 @@ app.post('/introspect', function(req, res) {
 			introspectionResponse.sub = token.user;
 			introspectionResponse.scope = token.scope.join(' ');
 			introspectionResponse.client_id = token.client_id;
-
-			/*
-			 * Return the key associated with the access token
-			 */
+			introspectionResponse.access_token_key = token.access_token_key;
 						
 			res.status(200).json(introspectionResponse);
 			return;

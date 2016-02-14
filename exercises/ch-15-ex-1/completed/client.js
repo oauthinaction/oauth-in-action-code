@@ -1,13 +1,18 @@
 var express = require("express");
+var bodyParser = require('body-parser');
 var request = require("sync-request");
 var url = require("url");
 var qs = require("qs");
 var querystring = require('querystring');
 var cons = require('consolidate');
 var randomstring = require("randomstring");
+var jose = require('jsrsasign');
 
 
 var app = express();
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 app.engine('html', cons.underscore);
 app.set('view engine', 'html');
@@ -16,7 +21,10 @@ app.set('views', 'files/client');
 // authorization server information
 var authServer = {
 	authorizationEndpoint: 'http://localhost:9001/authorize',
-	tokenEndpoint: 'http://localhost:9001/token'
+	tokenEndpoint: 'http://localhost:9001/token',
+	revocationEndpoint: 'http://localhost:9001/revoke',
+	registrationEndpoint: 'http://localhost:9001/register',
+	userInfoEndpoint: 'http://localhost:9001/userinfo'
 };
 
 // client information
@@ -33,15 +41,26 @@ var protectedResource = 'http://localhost:9002/resource';
 var state = null;
 
 var access_token = null;
+var refresh_token = null;
 var scope = null;
+var key = null;
 
 app.get('/', function (req, res) {
-	res.render('index', {access_token: access_token, scope: scope});
+	res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope, key: key});
 });
 
 app.get('/authorize', function(req, res){
 
+	if (!client.client_id) {
+		registerClient();
+		if (!client.client_id) {
+			res.render('error', {error: 'Unable to register client.'});
+			return;
+		}
+	}
+	
 	access_token = null;
+	refresh_token = null;
 	scope = null;
 	state = randomstring.generate();
 	
@@ -57,7 +76,40 @@ app.get('/authorize', function(req, res){
 	res.redirect(url.format(authorizeUrl));
 });
 
-app.get('/callback', function(req, res){
+var registerClient = function() {
+	
+	var template = {
+		client_name: 'OAuth in Action Dynamic Test Client',
+		client_uri: 'http://localhost:9000/',
+		redirect_uris: ['http://localhost:9000/callback'],
+		grant_types: ['authorization_code'],
+		response_types: ['code'],
+		token_endpoint_auth_method: 'secret_basic',
+		scope: 'openid profile email address phone'
+	};
+
+	var headers = {
+		'Content-Type': 'application/json',
+		'Accept': 'application/json'
+	};
+	
+	var regRes = request('POST', authServer.registrationEndpoint, 
+		{
+			body: JSON.stringify(template),
+			headers: headers
+		}
+	);
+	
+	if (regRes.statusCode == 201) {
+		var body = JSON.parse(regRes.getBody());
+		console.log("Got registered client", body);
+		if (body.client_id) {
+			client = body;
+		}
+	}
+};
+
+app.get("/callback", function(req, res){
 	
 	if (req.query.error) {
 		// it's an error response, act accordingly
@@ -66,7 +118,9 @@ app.get('/callback', function(req, res){
 	}
 	
 	var resState = req.query.state;
-	if (resState != state) {
+	if (resState == state) {
+		console.log('State value matches: expected %s got %s', state, resState);
+	} else {
 		console.log('State DOES NOT MATCH: expected %s got %s', state, resState);
 		res.render('error', {error: 'State value did not match'});
 		return;
@@ -77,6 +131,8 @@ app.get('/callback', function(req, res){
 	var form_data = qs.stringify({
 				grant_type: 'authorization_code',
 				code: code,
+//				client_id: client.client_id,
+//				client_secret: client.client_secret,
 				redirect_uri: client.redirect_uri
 			});
 	var headers = {
@@ -98,11 +154,18 @@ app.get('/callback', function(req, res){
 	
 		access_token = body.access_token;
 		console.log('Got access token: %s', access_token);
+		if (body.refresh_token) {
+			refresh_token = body.refresh_token;
+			console.log('Got refresh token: %s', refresh_token);
+		}
 		
 		scope = body.scope;
 		console.log('Got scope: %s', scope);
 
-		res.render('index', {access_token: access_token, scope: scope});
+		key = body.access_token_key;
+		console.log('Got key: %O', key);
+
+		res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope, key: key});
 	} else {
 		res.render('error', {error: 'Unable to fetch access token, server response: ' + tokRes.statusCode})
 	}
@@ -110,10 +173,39 @@ app.get('/callback', function(req, res){
 
 app.get('/fetch_resource', function(req, res) {
 
+	if (!access_token) {
+		if (refresh_token) {
+			// try to refresh and start again
+			refreshAccessToken(req, res);
+			return;
+		} else {
+			res.render('error', {error: 'Missing access token.'});
+			return;
+		}
+	}
+	
 	console.log('Making request with access token %s', access_token);
 	
+	var header = { 'typ': 'PoP', 'alg': 'RS256', 'kid': key.kid };
+	
+	var payload = {};
+	payload.at = access_token;
+	payload.ts = Math.floor(Date.now() / 1000);
+	payload.m = 'POST';
+	payload.u = 'localhost:9002';
+	payload.p = '/resource';
+	
+	// TODO: header calculation
+	
+	var stringHeader = JSON.stringify(header);
+	var stringPayload = JSON.stringify(payload);
+	var privateKey = jose.KEYUTIL.getKey(key);
+	var signed = jose.jws.JWS.sign('RS256', stringHeader, stringPayload, privateKey);
+
+	console.log('Signed PoP header %s', signed);
+	
 	var headers = {
-		'Authorization': 'Bearer ' + access_token,
+		'Authorization': 'PoP ' + signed,
 		'Content-Type': 'application/x-www-form-urlencoded'
 	};
 	
@@ -127,8 +219,14 @@ app.get('/fetch_resource', function(req, res) {
 		return;
 	} else {
 		access_token = null;
-		res.render('error', {error: resource.statusCode});
-		return;
+		if (refresh_token) {
+			// try to refresh and start again
+			refreshAccessToken(req, res);
+			return;
+		} else {
+			res.render('error', {error: 'Server returned response code: ' + resource.statusCode});
+			return;
+		}
 	}
 	
 	
