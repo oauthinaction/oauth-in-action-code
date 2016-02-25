@@ -147,8 +147,6 @@ app.get("/callback", function(req, res){
 	var form_data = qs.stringify({
 				grant_type: 'authorization_code',
 				code: code,
-//				client_id: client.client_id,
-//				client_secret: client.client_secret,
 				redirect_uri: client.redirect_uri
 			});
 	var headers = {
