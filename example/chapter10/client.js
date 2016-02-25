@@ -78,7 +78,7 @@ app.get('/authorize', function(req, res){
 	refresh_token = null;
 	scope = null;
 	state = randomstring.generate();
-	code_challenge = randomstring.generate();
+	code_challenge = randomstring.generate(80);
 	
 	var authorizeUrl = url.parse(authServer.authorizationEndpoint, true);
 	delete authorizeUrl.search; // this is to get around odd behavior in the node URL library
