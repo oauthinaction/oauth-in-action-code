@@ -44,7 +44,7 @@ var client = {
 	"client_id": "oauth-client-1",
 	"client_secret": "oauth-client-secret-1",
 	"redirect_uris": ["http://localhost:9000/callback"],
-	"scope": "openid profile email address phone"
+	"scope": "foo bar"
 };
 
 //var client = {};
@@ -126,7 +126,7 @@ var registerClient = function() {
 };
 
 app.get("/callback", function(req, res){
-	
+
 	if (req.query.error) {
 		// it's an error response, act accordingly
 		res.render('error', {error: req.query.error});
@@ -147,9 +147,7 @@ app.get("/callback", function(req, res){
 	var form_data = qs.stringify({
 				grant_type: 'authorization_code',
 				code: code,
-//				client_id: client.client_id,
-//				client_secret: client.client_secret,
-				redirect_uri: client.redirect_uri
+				redirect_uri: client.redirect_uris[0]
 			});
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',

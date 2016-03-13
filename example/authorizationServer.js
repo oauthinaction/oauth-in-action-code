@@ -33,7 +33,7 @@ var clients = [
 		"client_id": "oauth-client-1",
 		"client_secret": "oauth-client-secret-1",
 		"redirect_uris": ["http://localhost:9000/callback"],
-		"scope": "openid profile email phone address"
+		"scope": "foo bar"
 	},
 	{
 		"client_id": "oauth-client-2",
@@ -170,7 +170,7 @@ app.post('/approve', function(req, res) {
 			var code = randomstring.generate(8);
 			
 			var user = req.body.user;
-		
+		/*
 			var scope = __.filter(__.keys(req.body), function(s) { return __.string.startsWith(s, 'scope_'); })
 				.map(function(s) { return s.slice('scope_'.length); });
 			var client = getClient(query.client_id);
@@ -183,9 +183,9 @@ app.post('/approve', function(req, res) {
 				res.redirect(urlParsed);
 				return;
 			}
-
+			*/
 			// save the code and request for later
-			codes[code] = { authorizationEndpointRequest: query, scope: scope, user: user };
+			codes[code] = { authorizationEndpointRequest: query, scope: [], user: user };
 		
 			var urlParsed = buildUrl(query.redirect_uri, {
 				code: code,
@@ -364,15 +364,19 @@ app.post("/token", function(req, res){
 			delete codes[req.body.code]; // burn our code, it's been used
 			if (code.authorizationEndpointRequest.client_id == clientId) {
 
-				var user = userInfo[code.user];
-				if (!user) {		
-					console.log('Unknown user %s', user)
-					res.status(500).render('error', {error: 'Unknown user ' + code.user});
-					return;
-				}	
-				console.log("User %j", user);
+				var access_token = randomstring.generate();
 
-				var token_response = generateTokens(req, res, clientId, user, code.scope, code.authorizationEndpointRequest.nonce, true);
+				nosql.insert({ access_token: access_token, client_id: clientId, scope: code.scope });
+
+				console.log('Issuing access token %s', access_token);
+				console.log('with scope %s', access_token, scope);
+
+				var cscope = null;
+				if (code.scope) {
+					cscope = code.scope.join(' ');
+				}
+
+				var token_response = { access_token: access_token, token_type: 'Bearer', scope: cscope };
 
 				res.status(200).json(token_response);
 				console.log('Issued tokens for code %s', req.body.code);
