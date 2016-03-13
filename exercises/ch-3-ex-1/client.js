@@ -5,7 +5,8 @@ var qs = require("qs");
 var querystring = require('querystring');
 var cons = require('consolidate');
 var randomstring = require("randomstring");
-
+var __ = require('underscore');
+__.string = require('underscore.string');
 
 var app = express();
 
@@ -48,10 +49,6 @@ app.get('/authorize', function(req, res){
 	 * Send the user to the authorization server
 	 */
 	
-	// REMOVE THIS LINE
-	res.render('error', {error: 'Not implemented'});
-	// REMOVE THIS LINE
-
 });
 
 app.get('/callback', function(req, res){
@@ -60,10 +57,6 @@ app.get('/callback', function(req, res){
 	 * Parse the response from the authorization server and get a token
 	 */
 	
-	// REMOVE THIS LINE
-	res.render('error', {error: 'Not implemented'});
-	// REMOVE THIS LINE
-
 });
 
 app.get('/fetch_resource', function(req, res) {
@@ -72,11 +65,27 @@ app.get('/fetch_resource', function(req, res) {
 	 * Use the access token to call the resource server
 	 */
 	
-	// REMOVE THIS LINE
-	res.render('error', {error: 'Not implemented'});
-	// REMOVE THIS LINE
-	
+	if (!access_token) {
+		res.render('error', {error: 'Missing Access Token'});
+	}
+
 });
+
+var buildUrl = function(base, options, hash) {
+	var newUrl = url.parse(base, true);
+	delete newUrl.search;
+	if (!newUrl.query) {
+		newUrl.query = {};
+	}
+	__.each(options, function(value, key, list) {
+		newUrl.query[key] = value;
+	});
+	if (hash) {
+		newUrl.hash = hash;
+	}
+	
+	return url.format(newUrl);
+};
 
 app.use('/', express.static('files/client'));
 

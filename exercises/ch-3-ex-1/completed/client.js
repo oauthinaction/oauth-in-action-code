@@ -5,7 +5,8 @@ var qs = require("qs");
 var querystring = require('querystring');
 var cons = require('consolidate');
 var randomstring = require("randomstring");
-
+var __ = require('underscore');
+__.string = require('underscore.string');
 
 var app = express();
 
@@ -24,8 +25,7 @@ var authServer = {
 var client = {
 	"client_id": "oauth-client-1",
 	"client_secret": "oauth-client-secret-1",
-	"redirect_uris": ["http://localhost:9000/callback"],
-	"scope": "foo"
+	"redirect_uris": ["http://localhost:9000/callback"]
 };
 
 var protectedResource = 'http://localhost:9002/resource';
@@ -45,16 +45,16 @@ app.get('/authorize', function(req, res){
 	scope = null;
 	state = randomstring.generate();
 	
-	var authorizeUrl = url.parse(authServer.authorizationEndpoint, true);
-	delete authorizeUrl.search; // this is to get around odd behavior in the node URL library
-	authorizeUrl.query.response_type = 'code';
-	authorizeUrl.query.scope = client.scope;
-	authorizeUrl.query.client_id = client.client_id;
-	authorizeUrl.query.redirect_uri = client.redirect_uris[0];
-	authorizeUrl.query.state = state;
+	var authorizeUrl = buildUrl(authServer.authorizationEndpoint, {
+		response_type: 'code',
+		scope: client.scope,
+		client_id: client.client_id,
+		redirect_uri: client.redirect_uris[0],
+		state: state
+	});
 	
-	console.log("redirect", url.format(authorizeUrl));
-	res.redirect(url.format(authorizeUrl));
+	console.log("redirect", authorizeUrl);
+	res.redirect(authorizeUrl);
 });
 
 app.get('/callback', function(req, res){
@@ -109,6 +109,10 @@ app.get('/callback', function(req, res){
 });
 
 app.get('/fetch_resource', function(req, res) {
+	
+	if (!access_token) {
+		res.render('error', {error: 'Missing Access Token'});
+	}
 
 	console.log('Making request with access token %s', access_token);
 	
@@ -133,6 +137,22 @@ app.get('/fetch_resource', function(req, res) {
 	
 	
 });
+
+var buildUrl = function(base, options, hash) {
+	var newUrl = url.parse(base, true);
+	delete newUrl.search;
+	if (!newUrl.query) {
+		newUrl.query = {};
+	}
+	__.each(options, function(value, key, list) {
+		newUrl.query[key] = value;
+	});
+	if (hash) {
+		newUrl.hash = hash;
+	}
+	
+	return url.format(newUrl);
+};
 
 app.use('/', express.static('files/client'));
 
