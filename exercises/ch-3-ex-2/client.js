@@ -5,6 +5,8 @@ var qs = require("qs");
 var querystring = require('querystring');
 var cons = require('consolidate');
 var randomstring = require("randomstring");
+var __ = require('underscore');
+__.string = require('underscore.string');
 
 
 var app = express();
@@ -34,7 +36,7 @@ var state = null;
 
 var access_token = '987tghjkiu6trfghjuytrghj';
 var scope = null;
-var refresh_token = '98uhjrk2o3ij2r3oj32r23rmasd';
+var refresh_token = 'j2r3oj32r23rmasd98uhjrk2o3i';
 
 app.get('/', function (req, res) {
 	res.render('index', {access_token: access_token, scope: scope, refresh_token: refresh_token});
@@ -46,16 +48,16 @@ app.get('/authorize', function(req, res){
 	scope = null;
 	state = randomstring.generate();
 	
-	var authorizeUrl = url.parse(authServer.authorizationEndpoint, true);
-	delete authorizeUrl.search; // this is to get around odd behavior in the node URL library
-	authorizeUrl.query.response_type = 'code';
-	authorizeUrl.query.scope = client.scope;
-	authorizeUrl.query.client_id = client.client_id;
-	authorizeUrl.query.redirect_uri = client.redirect_uris[0];
-	authorizeUrl.query.state = state;
+	var authorizeUrl = buildUrl(authServer.authorizationEndpoint, {
+		response_type: 'code',
+		scope: client.scope,
+		client_id: client.client_id,
+		redirect_uri: client.redirect_uris[0],
+		state: state
+	});
 	
-	console.log("redirect", url.format(authorizeUrl));
-	res.redirect(url.format(authorizeUrl));
+	console.log("redirect", authorizeUrl);
+	res.redirect(authorizeUrl);
 });
 
 app.get('/callback', function(req, res){
@@ -134,7 +136,7 @@ app.get('/fetch_resource', function(req, res) {
 		access_token = null;
 		
 		/*
-		 * Instead of returning an error, refresh the access token if we have a refresh token
+		 * Instead of always returning an error, refresh the access token if we have a refresh token
 		 */
 
 		res.render('error', {error: resource.statusCode});
@@ -150,10 +152,22 @@ var refreshAccessToken = function(req, res) {
 	 * Use the refresh token to get a new access token
 	 */
 	
-	// REMOVE THIS LINE
-	res.render('error', {error: 'Not implemented'});
-	// REMOVE THIS LINE
+};
 
+var buildUrl = function(base, options, hash) {
+	var newUrl = url.parse(base, true);
+	delete newUrl.search;
+	if (!newUrl.query) {
+		newUrl.query = {};
+	}
+	__.each(options, function(value, key, list) {
+		newUrl.query[key] = value;
+	});
+	if (hash) {
+		newUrl.hash = hash;
+	}
+	
+	return url.format(newUrl);
 };
 
 app.use('/', express.static('files/client'));

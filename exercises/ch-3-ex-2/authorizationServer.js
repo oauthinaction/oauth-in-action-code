@@ -230,7 +230,7 @@ app.post("/token", function(req, res){
 					res.status(400).end();
 					return
 				}
-				console.log("We found a matching token: %s", req.body.refresh_token);
+				console.log("We found a matching refresh token: %s", req.body.refresh_token);
 				var access_token = randomstring.generate();
 				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: req.body.refresh_token };
 				nosql.insert({ access_token: access_token, client_id: clientId });
@@ -253,7 +253,7 @@ app.use('/', express.static('files/authorizationServer'));
 // clear the database on startup
 nosql.clear();
 // inject our pre-baked refresh token
-nosql.insert({ refresh_token: '98uhjrk2o3ij2r3oj32r23rmasd', client_id: 'oauth-client-1', scope: 'foo bar' });
+nosql.insert({ refresh_token: 'j2r3oj32r23rmasd98uhjrk2o3i', client_id: 'oauth-client-1', scope: 'foo bar' });
 
 var server = app.listen(9001, 'localhost', function () {
   var host = server.address().address;
