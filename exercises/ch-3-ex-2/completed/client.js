@@ -80,7 +80,7 @@ app.get('/callback', function(req, res){
 	var form_data = qs.stringify({
 				grant_type: 'authorization_code',
 				code: code,
-				redirect_uri: client.redirect_uri
+				redirect_uri: client.redirect_uris[0]
 			});
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',
@@ -149,8 +149,7 @@ app.get('/fetch_resource', function(req, res) {
 var refreshAccessToken = function(req, res) {
 	var form_data = qs.stringify({
 				grant_type: 'refresh_token',
-				refresh_token: refresh_token,
-				redirect_uri: client.redirect_uri
+				refresh_token: refresh_token
 			});
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',
