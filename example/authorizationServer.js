@@ -110,7 +110,7 @@ var getProtectedResource = function(resourceId) {
 
 
 var getUser = function(username) {
-	return __.find(userInfo, function (user, key) { return user.username == username; });
+	return userInfo[username];
 };
 
 app.get('/', function(req, res) {
@@ -171,8 +171,8 @@ app.post('/approve', function(req, res) {
 			
 			var user = req.body.user;
 		/*
-			var scope = __.filter(__.keys(req.body), function(s) { return __.string.startsWith(s, 'scope_'); })
-				.map(function(s) { return s.slice('scope_'.length); });
+			var scope = getScopesFromForm(req.body);
+
 			var client = getClient(query.client_id);
 			var cscope = client.scope ? client.scope.split(' ') : undefined;
 			if (__.difference(scope, cscope).length > 0) {
@@ -185,7 +185,7 @@ app.post('/approve', function(req, res) {
 			}
 			*/
 			// save the code and request for later
-			codes[code] = { authorizationEndpointRequest: query, scope: [], user: user };
+			codes[code] = { request: query, scope: [], user: user, clientId: query.clientId };
 		
 			var urlParsed = buildUrl(query.redirect_uri, {
 				code: code,
@@ -196,8 +196,8 @@ app.post('/approve', function(req, res) {
 		} else if (query.response_type == 'token') {
 			var user = req.body.user;
 		
-			var scope = __.filter(__.keys(req.body), function(s) { return __.string.startsWith(s, 'scope_'); })
-				.map(function(s) { return s.slice('scope_'.length); });
+			var scope = getScopesFromForm(req.body);
+
 			var client = getClient(query.client_id);
 			var cscope = client.scope ? client.scope.split(' ') : undefined;
 			if (__.difference(scope, cscope).length > 0) {
@@ -257,7 +257,7 @@ var generateTokens = function (req, res, clientId, user, scope, nonce, generateR
 	}	
 
 	/*
-	var header = { 'typ': 'JWT', 'alg': 'RS256', 'kid': 'authserver'};
+	var header = { 'typ': 'JWT', 'alg': 'RS256', 'kid': rsaKey.kid};
 
 	var payload = {};
 	payload.iss = 'http://localhost:9001/';
@@ -279,7 +279,7 @@ var generateTokens = function (req, res, clientId, user, scope, nonce, generateR
 	var access_token = jose.jws.JWS.sign('RS256', stringHeader, stringPayload, privateKey);
 	*/
 
-	var header = { 'typ': 'JWT', 'alg': 'RS256', 'kid': 'authserver'};
+	var header = { 'typ': 'JWT', 'alg': 'RS256', 'kid': rsaKey.kid};
 	
 	var payload = {};
 	payload.iss = 'http://localhost:9001/';
@@ -362,7 +362,7 @@ app.post("/token", function(req, res){
 		
 		if (code) {
 			delete codes[req.body.code]; // burn our code, it's been used
-			if (code.authorizationEndpointRequest.client_id == clientId) {
+			if (code.request.client_id == clientId) {
 
 				var access_token = randomstring.generate();
 
@@ -383,7 +383,7 @@ app.post("/token", function(req, res){
 				
 				return;
 			} else {
-				console.log('Client mismatch, expected %s got %s', code.authorizationEndpointRequest.client_id, clientId);
+				console.log('Client mismatch, expected %s got %s', code.request.client_id, clientId);
 				res.status(400).json({error: 'invalid_grant'});
 				return;
 			}
@@ -846,6 +846,11 @@ var buildUrl = function(base, options, hash) {
 	}
 	
 	return url.format(newUrl);
+};
+
+var getScopesFromForm = function(body) {
+	return __.filter(__.keys(body), function(s) { return __.string.startsWith(s, 'scope_'); })
+				.map(function(s) { return s.slice('scope_'.length); });
 };
 
 app.use('/', express.static('files/authorizationServer'));
