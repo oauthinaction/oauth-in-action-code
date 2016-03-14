@@ -8,6 +8,8 @@ var cons = require('consolidate');
 var randomstring = require("randomstring");
 var jose = require('jsrsasign');
 var base64url = require('base64url');
+var __ = require('underscore');
+__.string = require('underscore.string');
 
 
 var app = express();
@@ -53,7 +55,7 @@ var produceApi = 'http://localhost:9002/produce';
 var favoritesApi = 'http://localhost:9002/favorites';
 
 var state = null;
-var code_challenge = null;
+var code_verifier = null;
 
 var access_token = null;
 var refresh_token = null;
@@ -78,19 +80,20 @@ app.get('/authorize', function(req, res){
 	refresh_token = null;
 	scope = null;
 	state = randomstring.generate();
-	code_challenge = randomstring.generate(80);
+	code_verifier = randomstring.generate(80);
+	var code_challenge = code_verifier;
 	
-	var authorizeUrl = url.parse(authServer.authorizationEndpoint, true);
-	delete authorizeUrl.search; // this is to get around odd behavior in the node URL library
-	authorizeUrl.query.response_type = 'code';
-	authorizeUrl.query.scope = client.scope;
-	authorizeUrl.query.client_id = client.client_id;
-	authorizeUrl.query.redirect_uri = client.redirect_uris[0];
-	authorizeUrl.query.state = state;
-	authorizeUrl.query.code_challenge = code_challenge ;
+	var authorizeUrl = buildUrl(authServer.authorizationEndpoint, {
+		response_type: 'code',
+		scope: client.scope,
+		client_id: client.client_id,
+		redirect_uri: client.redirect_uris[0],
+		state: state,
+		code_challenge: code_challenge
+	});
 	
-	console.log("redirect", url.format(authorizeUrl));
-	res.redirect(url.format(authorizeUrl));
+	console.log("redirect", authorizeUrl);
+	res.redirect(authorizeUrl);
 });
 
 var registerClient = function() {
@@ -148,8 +151,8 @@ app.get("/callback", function(req, res){
 	var form_data = qs.stringify({
 				grant_type: 'authorization_code',
 				code: code,
-				code_verifier: code_challenge,
-				redirect_uri: client.redirect_uri
+				redirect_uri: client.redirect_uri,
+				code_verifier: code_verifier
 			});
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',
@@ -515,6 +518,22 @@ app.post('/username_password', function(req, res) {
 });
 
 app.use('/', express.static('files/client'));
+
+var buildUrl = function(base, options, hash) {
+	var newUrl = url.parse(base, true);
+	delete newUrl.search;
+	if (!newUrl.query) {
+		newUrl.query = {};
+	}
+	__.each(options, function(value, key, list) {
+		newUrl.query[key] = value;
+	});
+	if (hash) {
+		newUrl.hash = hash;
+	}
+	
+	return url.format(newUrl);
+};
 
 var server = app.listen(9000, 'localhost', function () {
   var host = server.address().address;
