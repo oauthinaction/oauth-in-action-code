@@ -48,6 +48,7 @@ var access_token = null;
 var refresh_token = null;
 var scope = null;
 var id_token = null;
+var userInfo = null;
 
 app.get('/', function (req, res) {
 	res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope});

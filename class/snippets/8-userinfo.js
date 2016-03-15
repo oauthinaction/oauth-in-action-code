@@ -77,10 +77,3 @@ app.get('/userinfo', function(req, res) {
 	}
 	
 });
-
-
-// replace in client.js
-
-res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope});
- -- >
-res.render('userinfo', {userInfo: userInfo, id_token: id_token});

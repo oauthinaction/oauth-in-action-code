@@ -109,7 +109,7 @@ app.post("/token", function(req, res){
 				nosql.insert({ access_token: access_token, client_id: clientId, scope: code.scope, user: code.user });
 
 				console.log('Issuing access token %s', access_token);
-				console.log('with scope %s', access_token, scope);
+				console.log('with scope %s', code.scope);
 
 				var cscope = null;
 				if (code.scope) {
