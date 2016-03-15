@@ -87,7 +87,7 @@ var buildUrl = function(base, options, hash) {
 	return url.format(newUrl);
 };
 
-var encodeClientCredentials(clientId, clientSecret) {
+var encodeClientCredentials = function(clientId, clientSecret) {
 	return new Buffer(querystring.escape(clientId) + ':' + querystring.escape(clientSecret)).toString('base64');
 };
 

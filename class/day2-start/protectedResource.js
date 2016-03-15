@@ -38,7 +38,34 @@ var rsaKey = {
 };
 
 var getAccessToken = function(req, res, next) {
-
+	// check the auth header first
+	var auth = req.headers['authorization'];
+	var inToken = null;
+	if (auth && auth.toLowerCase().indexOf('bearer') == 0) {
+		inToken = auth.slice('bearer '.length);
+	} else if (req.body && req.body.access_token) {
+		// not in the header, check in the form body
+		inToken = req.body.access_token;
+	} else if (req.query && req.query.access_token) {
+		inToken = req.query.access_token
+	}
+	
+	console.log('Incoming token: %s', inToken);
+	nosql.one(function(token) {
+		if (token.access_token == inToken) {
+			return token;	
+		}
+	}, function(err, token) {
+		if (token) {
+			console.log("We found a matching token: %s", inToken);
+		} else {
+			console.log('No matching token was found.');
+		}
+		req.access_token = token;
+		next();
+		return;
+	});
+	
 };
 
 var requireAccessToken = function(req, res, next) {
@@ -52,7 +79,13 @@ var requireAccessToken = function(req, res, next) {
 app.options('/resource', cors());
 
 app.post("/resource", cors(), getAccessToken, function(req, res){
-
+	console.log(req.access_token);
+	if (req.access_token) {
+		res.json(resource);
+	} else {
+		res.status(401).end();
+	}
+	
 });
 
 var userInfoEndpoint = function(req, res) {
