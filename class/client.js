@@ -55,19 +55,19 @@ app.get('/', function (req, res) {
 });
 
 app.get('/authorize', function(req, res){
-
+	res.end();
 });
 
 app.get("/callback", function(req, res){
-
+	res.end();
 });
 
 app.get('/fetch_resource', function(req, res) {
-
+	res.end();
 });
 
 app.get('/userinfo', function(req, res) {
-
+	res.end();
 });
 
 app.use('/', express.static('files/client'));

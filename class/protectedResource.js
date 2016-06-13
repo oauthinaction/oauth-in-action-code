@@ -38,7 +38,7 @@ var rsaKey = {
 };
 
 var getAccessToken = function(req, res, next) {
-
+	next();
 };
 
 var requireAccessToken = function(req, res, next) {
@@ -52,11 +52,11 @@ var requireAccessToken = function(req, res, next) {
 app.options('/resource', cors());
 
 app.post("/resource", cors(), getAccessToken, function(req, res){
-
+	res.end();
 });
 
 var userInfoEndpoint = function(req, res) {
-	
+	res.end();
 };
 
 app.get('/userinfo', getAccessToken, requireAccessToken, userInfoEndpoint);

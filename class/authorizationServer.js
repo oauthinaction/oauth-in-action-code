@@ -66,15 +66,15 @@ app.get('/', function(req, res) {
 });
 
 app.get("/authorize", function(req, res){
-
+	res.end();
 });
 
 app.post('/approve', function(req, res) {
-
+	res.end();
 });
 
 app.post("/token", function(req, res){
-	
+	res.end();
 });
 
 
