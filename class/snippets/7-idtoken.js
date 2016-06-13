@@ -1,26 +1,29 @@
 // also authorizationServer.js
 
+var token_response = { access_token: access_token, token_type: 'Bearer',  scope: cscope };
 
-var ipayload = {};
-ipayload.iss = 'http://localhost:9001/';
-ipayload.sub = code.user.sub;
-ipayload.aud = client.client_id;
-ipayload.iat = Math.floor(Date.now() / 1000);
-ipayload.exp = Math.floor(Date.now() / 1000) + (5 * 60);	
+if (__.contains(code.scope, 'openid')) {
+	var ipayload = {
+		iss: 'http://localhost:9001/',
+		sub: code.user.sub,
+		aud: client.client_id,
+		iat: Math.floor(Date.now() / 1000),
+		exp: Math.floor(Date.now() / 1000) + (5 * 60)	
+	};
+	if (code.request.nonce) {
+		ipayload.nonce = code.request.nonce;
+	}
 
-if (code.request.nonce) {
-	ipayload.nonce = code.request.nonce;
+	var istringHeader = JSON.stringify(header);
+	var istringPayload = JSON.stringify(ipayload);
+	var privateKey = jose.KEYUTIL.getKey(rsaKey);
+	var id_token = jose.jws.JWS.sign(rsaKey.alg, istringHeader, istringPayload, privateKey);
+
+	console.log('Issuing ID token %s', id_token);
+
+	token_response.id_token = id_token;
+
 }
-
-var istringHeader = JSON.stringify(header);
-var istringPayload = JSON.stringify(ipayload);
-var privateKey = jose.KEYUTIL.getKey(rsaKey);
-var id_token = jose.jws.JWS.sign(rsaKey.alg, istringHeader, istringPayload, privateKey);
-
-console.log('Issuing ID token %s', id_token);
-
-
-var token_response = { access_token: access_token, token_type: 'Bearer',  scope: cscope, id_token: id_token };
 
 // also client.js
 

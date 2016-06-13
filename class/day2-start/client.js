@@ -33,10 +33,7 @@ var client = {
 // authorization server information
 var authServer = {
 	authorizationEndpoint: 'http://localhost:9001/authorize',
-	tokenEndpoint: 'http://localhost:9001/token',
-	revocationEndpoint: 'http://localhost:9001/revoke',
-	registrationEndpoint: 'http://localhost:9001/register',
-	userInfoEndpoint: 'http://localhost:9002/userinfo'
+	tokenEndpoint: 'http://localhost:9001/token'
 };
 
 var rsaKey = {
@@ -106,7 +103,7 @@ app.get("/callback", function(req, res){
 			});
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',
-		'Authorization': 'Basic ' + new Buffer(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
+		'Authorization': 'Basic ' + encodeClientCredentials(client.client_id, client.client_secret)
 	};
 
 	var tokRes = request('POST', authServer.tokenEndpoint, 

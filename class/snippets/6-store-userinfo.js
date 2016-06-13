@@ -16,17 +16,7 @@ var userInfo = {
 		"name": "Bob",
 		"email": "bob.loblob@example.net",
 		"email_verified": false
-	},
-
-	"carol": {
-		"sub": "F5Q1-L6LGG-959FS",
-		"preferred_username": "carol",
-		"name": "Carol",
-		"email": "carol.lewis@example.net",
-		"email_verified": true,
-		"username" : "clewis",
-		"password" : "user password!"
- 	}	
+	}
 };
 
 // authorizationServer.js
@@ -49,3 +39,8 @@ var client = {
 	"scope": "openid profile email phone address"
 };
 
+var authServer = {
+	authorizationEndpoint: 'http://localhost:9001/authorize',
+	tokenEndpoint: 'http://localhost:9001/token',
+	userInfoEndpoint: 'http://localhost:9002/userinfo'
+};

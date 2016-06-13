@@ -26,7 +26,7 @@ app.get("/callback", function(req, res){
 			});
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',
-		'Authorization': 'Basic ' + new Buffer(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
+		'Authorization': 'Basic ' + encodeClientCredentials(client.client_id, client.client_secret)
 	};
 
 	var tokRes = request('POST', authServer.tokenEndpoint, 
@@ -65,9 +65,9 @@ app.post("/token", function(req, res){
 	var auth = req.headers['authorization'];
 	if (auth) {
 		// check the auth header
-		var clientCredentials = new Buffer(auth.slice('basic '.length), 'base64').toString().split(':');
-		var clientId = querystring.unescape(clientCredentials[0]);
-		var clientSecret = querystring.unescape(clientCredentials[1]);
+		var clientCredentials = decodeClientCredentials(auth);
+		var clientId = clientCredentials.id;
+		var clientSecret = clientCredentials.secret;
 	}
 	
 	// otherwise, check the post body

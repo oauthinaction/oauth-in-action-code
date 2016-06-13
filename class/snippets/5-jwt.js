@@ -1,12 +1,14 @@
 var header = { 'typ': 'JWT', 'alg': rsaKey.alg, 'kid': rsaKey.kid};
 
-var payload = {};
-payload.iss = 'http://localhost:9001/';
-payload.sub = code.user.sub;
-payload.aud = 'http://localhost:9002/';
-payload.iat = Math.floor(Date.now() / 1000);
-payload.exp = Math.floor(Date.now() / 1000) + (5 * 60);
-payload.jti = randomstring.generate();
+var payload = {
+	iss: 'http://localhost:9001/',
+	sub: code.user ? code.user.sub : null,
+	aud: 'http://localhost:9002/',
+	iat: Math.floor(Date.now() / 1000),
+	exp: Math.floor(Date.now() / 1000) + (5 * 60),
+	jti: randomstring.generate(8)
+};
+
 console.log(payload);
 
 var stringHeader = JSON.stringify(header);

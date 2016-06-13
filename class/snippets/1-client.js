@@ -1,3 +1,16 @@
+// for authorizationServer.js
+
+var clients = [
+	{
+		"client_id": "oauth-client-1",
+		"client_secret": "oauth-client-secret-1",
+		"redirect_uris": ["http://localhost:9000/callback"],
+		"scope": "foo bar"
+	}
+];
+
+
+
 // for client.js
 
 var client = {
@@ -15,16 +28,3 @@ var authServer = {
 	userInfoEndpoint: 'http://localhost:9002/userinfo'
 };
 
-
-
-
-// for authorizationServer.js
-
-var clients = [
-	{
-		"client_id": "oauth-client-1",
-		"client_secret": "oauth-client-secret-1",
-		"redirect_uris": ["http://localhost:9000/callback"],
-		"scope": "foo bar"
-	}
-];

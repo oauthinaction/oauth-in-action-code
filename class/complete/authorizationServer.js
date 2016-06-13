@@ -195,9 +195,9 @@ app.post("/token", function(req, res){
 	var auth = req.headers['authorization'];
 	if (auth) {
 		// check the auth header
-		var clientCredentials = new Buffer(auth.slice('basic '.length), 'base64').toString().split(':');
-		var clientId = querystring.unescape(clientCredentials[0]);
-		var clientSecret = querystring.unescape(clientCredentials[1]);
+		var clientCredentials = decodeClientCredentials(auth);
+		var clientId = clientCredentials.id;
+		var clientSecret = clientCredentials.secret;
 	}
 	
 	// otherwise, check the post body
@@ -236,13 +236,16 @@ app.post("/token", function(req, res){
 
 				var header = { 'typ': 'JWT', 'alg': rsaKey.alg, 'kid': rsaKey.kid};
 
-				var payload = {};
-				payload.iss = 'http://localhost:9001/';
-				payload.sub = code.user.sub;
-				payload.aud = 'http://localhost:9002/';
-				payload.iat = Math.floor(Date.now() / 1000);
-				payload.exp = Math.floor(Date.now() / 1000) + (5 * 60);
-				payload.jti = randomstring.generate();
+				/*
+				var payload = {
+					iss: 'http://localhost:9001/',
+					sub: code.user ? code.user.sub : null,
+					aud: 'http://localhost:9002/',
+					iat: Math.floor(Date.now() / 1000),
+					exp: Math.floor(Date.now() / 1000) + (5 * 60),
+					jti: randomstring.generate(8)
+				};
+
 				console.log(payload);
 
 				var stringHeader = JSON.stringify(header);
@@ -255,7 +258,9 @@ app.post("/token", function(req, res){
 
 				var privateKey = jose.KEYUTIL.getKey(rsaKey);
 				var access_token = jose.jws.JWS.sign(rsaKey.alg, stringHeader, stringPayload, privateKey);
-
+				*/
+				
+				var access_token = randomstring.generate();
 				nosql.insert({ access_token: access_token, client_id: clientId, scope: code.scope, user: code.user });
 
 				console.log('Issuing access token %s', access_token);
@@ -266,28 +271,30 @@ app.post("/token", function(req, res){
 					cscope = code.scope.join(' ');
 				}
 
-				var header = { 'typ': 'JWT', 'alg': rsaKey.alg, 'kid': rsaKey.kid};
+				var token_response = { access_token: access_token, token_type: 'Bearer',  scope: cscope };
 
-				var ipayload = {};
-				ipayload.iss = 'http://localhost:9001/';
-				ipayload.sub = code.user.sub;
-				ipayload.aud = client.client_id;
-				ipayload.iat = Math.floor(Date.now() / 1000);
-				ipayload.exp = Math.floor(Date.now() / 1000) + (5 * 60);	
+				if (__.contains(code.scope, 'openid')) {
+					var ipayload = {
+						iss: 'http://localhost:9001/',
+						sub: code.user.sub,
+						aud: client.client_id,
+						iat: Math.floor(Date.now() / 1000),
+						exp: Math.floor(Date.now() / 1000) + (5 * 60)	
+					};
+					if (code.request.nonce) {
+						ipayload.nonce = code.request.nonce;
+					}
 
-				if (code.request.nonce) {
-					ipayload.nonce = code.request.nonce;
+					var istringHeader = JSON.stringify(header);
+					var istringPayload = JSON.stringify(ipayload);
+					var privateKey = jose.KEYUTIL.getKey(rsaKey);
+					var id_token = jose.jws.JWS.sign(rsaKey.alg, istringHeader, istringPayload, privateKey);
+
+					console.log('Issuing ID token %s', id_token);
+
+					token_response.id_token = id_token;
+
 				}
-
-				var istringHeader = JSON.stringify(header);
-				var istringPayload = JSON.stringify(ipayload);
-				var privateKey = jose.KEYUTIL.getKey(rsaKey);
-				var id_token = jose.jws.JWS.sign(rsaKey.alg, istringHeader, istringPayload, privateKey);
-
-				console.log('Issuing ID token %s', id_token);
-
-
-				var token_response = { access_token: access_token, token_type: 'Bearer',  scope: cscope, id_token: id_token };
 
 				res.status(200).json(token_response);
 				console.log('Issued tokens for code %s', req.body.code);
@@ -330,6 +337,13 @@ var buildUrl = function(base, options, hash) {
 var getScopesFromForm = function(body) {
 	return __.filter(__.keys(body), function(s) { return __.string.startsWith(s, 'scope_'); })
 				.map(function(s) { return s.slice('scope_'.length); });
+};
+
+var decodeClientCredentials = function(auth) {
+	var clientCredentials = new Buffer(auth.slice('basic '.length), 'base64').toString().split(':');
+	var clientId = querystring.unescape(clientCredentials[0]);
+	var clientSecret = querystring.unescape(clientCredentials[1]);	
+	return { id: clientId, secret: clientSecret };
 };
 
 app.use('/', express.static('files/authorizationServer'));

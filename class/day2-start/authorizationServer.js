@@ -170,9 +170,9 @@ app.post("/token", function(req, res){
 	var auth = req.headers['authorization'];
 	if (auth) {
 		// check the auth header
-		var clientCredentials = new Buffer(auth.slice('basic '.length), 'base64').toString().split(':');
-		var clientId = querystring.unescape(clientCredentials[0]);
-		var clientSecret = querystring.unescape(clientCredentials[1]);
+		var clientCredentials = decodeClientCredentials(auth);
+		var clientId = clientCredentials.id;
+		var clientSecret = clientCredentials.secret;
 	}
 	
 	// otherwise, check the post body
@@ -264,6 +264,13 @@ var buildUrl = function(base, options, hash) {
 var getScopesFromForm = function(body) {
 	return __.filter(__.keys(body), function(s) { return __.string.startsWith(s, 'scope_'); })
 				.map(function(s) { return s.slice('scope_'.length); });
+};
+
+var decodeClientCredentials = function(auth) {
+	var clientCredentials = new Buffer(auth.slice('basic '.length), 'base64').toString().split(':');
+	var clientId = querystring.unescape(clientCredentials[0]);
+	var clientSecret = querystring.unescape(clientCredentials[1]);	
+	return { id: clientId, secret: clientSecret };
 };
 
 app.use('/', express.static('files/authorizationServer'));
