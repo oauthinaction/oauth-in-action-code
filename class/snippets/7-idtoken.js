@@ -28,6 +28,9 @@ if (__.contains(code.scope, 'openid')) {
 // also client.js
 
 if (body.id_token) {
+	userInfo = null;
+	id_token = null;
+	
 	console.log('Got ID token: %s', body.id_token);
 
 	// check the id token
@@ -40,7 +43,7 @@ if (body.id_token) {
 		console.log('Payload', payload);
 		if (payload.iss == 'http://localhost:9001/') {
 			console.log('issuer OK');
-			if ((Array.isArray(payload.aud) && _.contains(payload.aud, client.client_id)) || 
+			if ((Array.isArray(payload.aud) && __.contains(payload.aud, client.client_id)) || 
 				payload.aud == client.client_id) {
 				console.log('Audience OK');
 
