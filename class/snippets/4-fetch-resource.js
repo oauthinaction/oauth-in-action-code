@@ -24,14 +24,8 @@ app.get('/fetch_resource', function(req, res) {
 		return;
 	} else {
 		access_token = null;
-		if (refresh_token) {
-			// try to refresh and start again
-			refreshAccessToken(req, res);
-			return;
-		} else {
-			res.render('error', {error: 'Server returned response code: ' + resource.statusCode});
-			return;
-		}
+		res.render('error', {error: 'Server returned response code: ' + resource.statusCode});
+		return;
 	}
 	
 });
@@ -48,7 +42,7 @@ var getAccessToken = function(req, res, next) {
 		// not in the header, check in the form body
 		inToken = req.body.access_token;
 	} else if (req.query && req.query.access_token) {
-		inToken = req.query.access_token
+		inToken = req.query.access_token;
 	}
 	
 	console.log('Incoming token: %s', inToken);
