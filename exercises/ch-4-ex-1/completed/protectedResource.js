@@ -30,15 +30,7 @@ var resource = {
 };
 
 var getAccessToken = function(req, res, next) {
-	/*
-	 * Scan for an access token on the incoming request.
-	 */
 	
-	// REPLACE THESE TWO LINES
-	next();
-	return;
-	// REPLACE THESE TWO LINES
-
 	var inToken = null;
 	var auth = req.headers['authorization'];
 	if (auth && auth.toLowerCase().indexOf('bearer') == 0) {
@@ -67,20 +59,9 @@ var getAccessToken = function(req, res, next) {
 	});
 };
 
-var requireAccessToken = function(req, res, next) {
-	if (req.access_token) {
-		next();
-	} else {
-		res.status(401).end();
-	}
-};
-
 app.options('/resource', cors());
 
 
-/*
- * Add the getAccessToken function to this handler
- */
 app.post("/resource", cors(), getAccessToken, function(req, res){
 
 	if (req.access_token) {

@@ -124,11 +124,6 @@ app.get("/callback", function(req, res){
 
 app.get('/fetch_resource', function(req, res) {
 
-	if (!access_token) {
-		res.render('error', {error: 'Missing access token.'});
-		return;
-	}
-	
 	console.log('Making request with access token %s', access_token);
 	
 	var headers = {

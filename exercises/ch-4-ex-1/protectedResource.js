@@ -27,11 +27,6 @@ var getAccessToken = function(req, res, next) {
 	 * Scan for an access token on the incoming request.
 	 */
 	
-	// REPLACE THESE TWO LINES
-	next();
-	return;
-	// REPLACE THESE TWO LINES
-
 };
 
 app.options('/resource', cors());
@@ -46,10 +41,7 @@ app.post("/resource", cors(), function(req, res){
 	 * Check to see if the access token was found or not
 	 */
 	
-	// WRAP THIS LINE IN A CONDITIONAL STATEMENT
-	res.json(resource);
-	// WRAP THIS LINE IN A CONDITIONAL STATEMENT
-});
+);
 
 var server = app.listen(9002, 'localhost', function () {
   var host = server.address().address;
