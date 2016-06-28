@@ -163,7 +163,6 @@ app.post("/token", function(req, res){
 				nosql.insert({ access_token: access_token, client_id: clientId });
 
 				console.log('Issuing access token %s', access_token);
-				console.log('with scope %s', code.scope);
 
 				var token_response = { access_token: access_token, token_type: 'Bearer' };
 

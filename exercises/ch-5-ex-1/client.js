@@ -155,15 +155,18 @@ var refreshAccessToken = function(req, res) {
 		console.log('Got scope: %s', scope);
 	
 		// try again
-		res.redirect('/fetch_resource');
+		res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope});
 		return;
 	} else {
 		console.log('No refresh token, asking the user to get a new access token');
-		// tell the user to get a new access token
-		res.redirect('/authorize');
+		res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope});
 		return;
 	}
 };
+
+app.get('/refresh', function(req, res)) {
+	refreshAccessToken();
+}
 
 app.get('/fetch_resource', function(req, res) {
 

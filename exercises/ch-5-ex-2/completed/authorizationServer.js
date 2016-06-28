@@ -5,11 +5,8 @@ var randomstring = require("randomstring");
 var cons = require('consolidate');
 var nosql = require('nosql').load('database.nosql');
 var querystring = require('querystring');
-var qs = require("qs");
 var __ = require('underscore');
 __.string = require('underscore.string');
-var base64url = require('base64url');
-var jose = require('./lib/jsrsasign.js');
 
 var app = express();
 
@@ -30,9 +27,6 @@ var authServer = {
 // client information
 var clients = [
 
-  /*
-   * Enter client information here
-   */
 	{
 		"client_id": "oauth-client-1",
 		"client_secret": "oauth-client-secret-1",
@@ -53,11 +47,6 @@ app.get('/', function(req, res) {
 });
 
 app.get("/authorize", function(req, res){
-	
-	/*
-	 * Process the request, validate the client, and send the user to the approval page
-	 */
-	
 	
 	var client = getClient(req.query.client_id);
 	
@@ -83,10 +72,6 @@ app.get("/authorize", function(req, res){
 
 app.post('/approve', function(req, res) {
 
-	/*
-	 * Process the results of the approval page, authorize the client
-	 */
-	
 	var reqid = req.body.reqid;
 	var query = requests[reqid];
 	delete requests[reqid];
@@ -102,51 +87,42 @@ app.post('/approve', function(req, res) {
 			// user approved access
 			var code = randomstring.generate(8);
 			
-			var user = req.body.user;
-
 			// save the code and request for later
-			codes[code] = { authorizationEndpointRequest: query };
+			codes[code] = { request: query };
 		
-			var urlParsed = url.parse(query.redirect_uri);
-			delete urlParsed.search; // this is a weird behavior of the URL library
-			urlParsed.query = urlParsed.query || {};
-			urlParsed.query.code = code;
-			urlParsed.query.state = query.state; 
-			res.redirect(url.format(urlParsed));
+			var urlParsed = buildUrl(query.redirect_uri, {
+				code: code,
+				state: query.state
+			});
+			res.redirect(urlParsed);
 			return;
 		} else {
 			// we got a response type we don't understand
-			var urlParsed = url.parse(query.redirect_uri);
-			delete urlParsed.search; // this is a weird behavior of the URL library
-			urlParsed.query = urlParsed.query || {};
-			urlParsed.query.error = 'unsupported_response_type';
-			res.redirect(url.format(urlParsed));
+			var urlParsed = buildUrl(query.redirect_uri, {
+				error: 'unsupported_response_type'
+			});
+			res.redirect(urlParsed);
 			return;
 		}
 	} else {
 		// user denied access
-		var urlParsed = url.parse(query.redirect_uri);
-		delete urlParsed.search; // this is a weird behavior of the URL library
-		urlParsed.query = urlParsed.query || {};
-		urlParsed.query.error = 'access_denied';
-		res.redirect(url.format(urlParsed));
+		var urlParsed = buildUrl(query.redirect_uri, {
+			error: 'access_denied'
+		});
+		res.redirect(urlParsed);
 		return;
 	}
-
+	
 });
 
 app.post("/token", function(req, res){
-
-	/*
-	 * Process the request, issue an access token
-	 */
 	
 	var auth = req.headers['authorization'];
 	if (auth) {
 		// check the auth header
-		var clientCredentials = new Buffer(auth.slice('basic '.length), 'base64').toString().split(':');
-		var clientId = querystring.unescape(clientCredentials[0]);
-		var clientSecret = querystring.unescape(clientCredentials[1]);
+		var clientCredentials = decodeClientCredentials(auth);
+		var clientId = clientCredentials.id;
+		var clientSecret = clientCredentials.secret;
 	}
 	
 	// otherwise, check the post body
@@ -181,17 +157,18 @@ app.post("/token", function(req, res){
 		
 		if (code) {
 			delete codes[req.body.code]; // burn our code, it's been used
-			if (code.authorizationEndpointRequest.client_id == clientId) {
+			if (code.request.client_id == clientId) {
 
-				/*
-				 * Generate a refresh token and return it along side the access token
-				 */
-				
+				var access_token = randomstring.generate();
+				nosql.insert({ access_token: access_token, client_id: clientId });
+
 				var access_token = randomstring.generate();
 				var refresh_token = randomstring.generate();
 
 				nosql.insert({ access_token: access_token, client_id: clientId });
 				nosql.insert({ refresh_token: refresh_token, client_id: clientId });
+
+				console.log('Issuing access token %s', access_token);
 
 				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: refresh_token };
 
@@ -200,46 +177,69 @@ app.post("/token", function(req, res){
 				
 				return;
 			} else {
-				console.log('Client mismatch, expected %s got %s', code.authorizationEndpointRequest.client_id, clientId);
+				console.log('Client mismatch, expected %s got %s', code.request.client_id, clientId);
 				res.status(400).json({error: 'invalid_grant'});
 				return;
 			}
+		
+
 		} else {
 			console.log('Unknown code, %s', req.body.code);
 			res.status(400).json({error: 'invalid_grant'});
 			return;
 		}
 	} else if (req.body.grant_type == 'refresh_token') {
-		nosql.all(function(token) {
-			return (token.refresh_token == req.body.refresh_token);
-		}, function(err, tokens) {
-			if (tokens.length == 1) {
-				var token = tokens[0];
+		nosql.one(function(token) {
+			if (token.refresh_token == req.body.refresh_token) {
+				return token;	
+			}
+		}, function(err, token) {
+			if (token) {
+				console.log("We found a matching refresh token: %s", req.body.refresh_token);
 				if (token.client_id != clientId) {
-					console.log('Invalid client using a refresh token, expected %s got %s', token.client_id, clientId);
 					nosql.remove(function(found) { return (found == token); }, function () {} );
-					res.status(400).end();
-					return
+					res.status(400).json({error: 'invalid_grant'});
+					return;
 				}
-				console.log("We found a matching token: %s", req.body.refresh_token);
 				var access_token = randomstring.generate();
-				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: req.body.refresh_token };
 				nosql.insert({ access_token: access_token, client_id: clientId });
-				console.log('Issuing access token %s for refresh token %s', access_token, req.body.refresh_token);
+				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: token.refresh_token };
 				res.status(200).json(token_response);
 				return;
 			} else {
 				console.log('No matching token was found.');
-				res.status(401).end();
+				res.status(400).json({error: 'invalid_grant'});
+				return;
 			}
 		});
 	} else {
 		console.log('Unknown grant type %s', req.body.grant_type);
 		res.status(400).json({error: 'unsupported_grant_type'});
-		return;
 	}
+});
 
-);
+var buildUrl = function(base, options, hash) {
+	var newUrl = url.parse(base, true);
+	delete newUrl.search;
+	if (!newUrl.query) {
+		newUrl.query = {};
+	}
+	__.each(options, function(value, key, list) {
+		newUrl.query[key] = value;
+	});
+	if (hash) {
+		newUrl.hash = hash;
+	}
+	
+	return url.format(newUrl);
+};
+
+var decodeClientCredentials = function(auth) {
+	var clientCredentials = new Buffer(auth.slice('basic '.length), 'base64').toString().split(':');
+	var clientId = querystring.unescape(clientCredentials[0]);
+	var clientSecret = querystring.unescape(clientCredentials[1]);	
+	return { id: clientId, secret: clientSecret };
+};
 
 app.use('/', express.static('files/authorizationServer'));
 

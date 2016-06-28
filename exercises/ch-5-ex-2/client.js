@@ -6,7 +6,6 @@ var qs = require("qs");
 var querystring = require('querystring');
 var cons = require('consolidate');
 var randomstring = require("randomstring");
-var jose = require('./lib/jsrsasign.js');
 var base64url = require('base64url');
 
 
@@ -173,46 +172,6 @@ app.get("/callback", function(req, res){
 			console.log('Got refresh token: %s', refresh_token);
 		}
 		
-		if (body.id_token) {
-			console.log('Got ID token: %s', body.id_token);
-			
-			// check the id token
-			var pubKey = jose.KEYUTIL.getKey(rsaKey);
-			var signatureValid = jose.jws.JWS.verify(body.id_token, pubKey, ['RS256']);
-			if (signatureValid) {
-				console.log('Signature validated.');
-				var tokenParts = body.id_token.split('.');
-				var payload = JSON.parse(base64url.decode(tokenParts[1]));
-				console.log('Payload', payload);
-				if (payload.iss == 'http://localhost:9001/') {
-					console.log('issuer OK');
-					if ((Array.isArray(payload.aud) && _.contains(payload.aud, client.client_id)) || 
-						payload.aud == client.client_id) {
-						console.log('Audience OK');
-				
-						var now = Math.floor(Date.now() / 1000);
-				
-						if (payload.iat <= now) {
-							console.log('issued-at OK');
-							if (payload.exp >= now) {
-								console.log('expiration OK');
-						
-								console.log('Token valid!');
-		
-								id_token = payload;
-						
-							}
-						}
-					}
-			
-				}
-			
-
-			}
-			
-			
-		}
-		
 		scope = body.scope;
 		console.log('Got scope: %s', scope);
 
@@ -222,7 +181,7 @@ app.get("/callback", function(req, res){
 	}
 });
 
-var refreshAccessToken = function(req, res) {
+app.get('/refresh', function(req, res) {
 	var form_data = qs.stringify({
 				grant_type: 'refresh_token',
 				refresh_token: refresh_token,
@@ -253,27 +212,21 @@ var refreshAccessToken = function(req, res) {
 		console.log('Got scope: %s', scope);
 	
 		// try again
-		res.redirect('/fetch_resource');
+		res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope});
 		return;
 	} else {
 		console.log('No refresh token, asking the user to get a new access token');
 		// tell the user to get a new access token
-		res.redirect('/authorize');
+		res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope});
 		return;
 	}
-};
+});
 
 app.get('/fetch_resource', function(req, res) {
 
 	if (!access_token) {
-		if (refresh_token) {
-			// try to refresh and start again
-			refreshAccessToken(req, res);
-			return;
-		} else {
-			res.render('error', {error: 'Missing access token.'});
-			return;
-		}
+		res.render('error', {error: 'Missing access token.'});
+		return;
 	}
 	
 	console.log('Making request with access token %s', access_token);
@@ -293,225 +246,12 @@ app.get('/fetch_resource', function(req, res) {
 		return;
 	} else {
 		access_token = null;
-		if (refresh_token) {
-			// try to refresh and start again
-			refreshAccessToken(req, res);
-			return;
-		} else {
-			res.render('error', {error: 'Server returned response code: ' + resource.statusCode});
-			return;
-		}
-	}
-	
-	
-});
-
-app.get('/words', function (req, res) {
-
-	res.render('words', {words: '', timestamp: 0, result: null});
-	
-});
-
-app.get('/get_words', function (req, res) {
-
-	var headers = {
-		'Authorization': 'Bearer ' + access_token,
-		'Content-Type': 'application/x-www-form-urlencoded'
-	};
-	
-	var resource = request('GET', wordApi,
-		{headers: headers}
-	);
-	
-	if (resource.statusCode >= 200 && resource.statusCode < 300) {
-		var body = JSON.parse(resource.getBody());
-		res.render('words', {words: body.words, timestamp: body.timestamp, result: 'get'});
-		return;
-	} else {
-		res.render('words', {words: '', timestamp: 0, result: 'noget'});
-		return;
-	}
-	
-	
-	
-});
-
-app.get('/add_word', function (req, res) {
-	
-	var headers = {
-		'Authorization': 'Bearer ' + access_token,
-		'Content-Type': 'application/x-www-form-urlencoded'
-	};
-	
-	var form_body = qs.stringify({word: req.query.word});
-	
-	var resource = request('POST', wordApi,
-		{headers: headers, body: form_body}
-	);
-	
-	if (resource.statusCode >= 200 && resource.statusCode < 300) {
-		res.render('words', {words: '', timestamp: 0, result: 'add'});
-		return;
-	} else {
-		res.render('words', {words: '', timestamp: 0, result: 'noadd'});
-		return;
-	}
-	
-
-});
-
-app.get('/delete_word', function (req, res) {
-
-	var headers = {
-		'Authorization': 'Bearer ' + access_token,
-		'Content-Type': 'application/x-www-form-urlencoded'
-	};
-	
-	var resource = request('DELETE', wordApi,
-		{headers: headers}
-	);
-	
-	if (resource.statusCode >= 200 && resource.statusCode < 300) {
-		res.render('words', {words: '', timestamp: 0, result: 'rm'});
-		return;
-	} else {
-		res.render('words', {words: '', timestamp: 0, result: 'norm'});
+		res.render('error', {error: 'Server returned response code: ' + resource.statusCode});
 		return;
 	}
 	
 	
 });
-
-app.get('/produce', function(req, res) {
-	var headers = {
-		'Authorization': 'Bearer ' + access_token,
-		'Content-Type': 'application/x-www-form-urlencoded'
-	};
-	
-	var resource = request('GET', produceApi,
-		{headers: headers}
-	);
-	
-	if (resource.statusCode >= 200 && resource.statusCode < 300) {
-		var body = JSON.parse(resource.getBody());
-		res.render('produce', {scope: scope, data: body});
-		return;
-	} else {
-		res.render('produce', {scope: scope, data: {fruits: [], veggies: [], meats: []}});
-		return;
-	}
-	
-});
-
-app.get('/favorites', function(req, res) {
-	var headers = {
-		'Authorization': 'Bearer ' + access_token,
-		'Content-Type': 'application/x-www-form-urlencoded'
-	};
-	
-	var resource = request('GET', favoritesApi,
-		{headers: headers}
-	);
-	
-	if (resource.statusCode >= 200 && resource.statusCode < 300) {
-		var body = JSON.parse(resource.getBody());
-		console.log('Got data: ', body);
-		res.render('favorites', {scope: scope, data: body});
-		return;
-	} else {
-		res.render('favorites', {scope: scope, data: {user: '', favorites: {movies: [], foods: [], music: []}}});
-		return;
-	}
-	
-});
-
-app.get('/revoke', function(req, res) {
-	res.render('revoke', {access_token: access_token, refresh_token: refresh_token, scope: scope});
-});
-
-app.post('/revoke', function(req, res) {
-	var form_data = qs.stringify({
-		token: access_token
-	});
-	var headers = {
-		'Content-Type': 'application/x-www-form-urlencoded',
- 		'Authorization': 'Basic ' + new Buffer(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
-	};
-	console.log('Revoking token %s', access_token);
-	var tokRes = request('POST', authServer.revocationEndpoint, 
-		{
-			body: form_data,
-			headers: headers
-		}
-	);
-	
-	access_token = null;
-	refresh_token = null;
-	scope = null;
-	
-	if (tokRes.statusCode >= 200 && tokRes.statusCode < 300) {
-		res.render('revoke', {access_token: access_token, refresh_token: refresh_token, scope: scope});
-		return;
-	} else {
-		res.render('error', {error: tokRes.statusCode});
-		return;
-	}
-});
-
-app.get('/userinfo', function(req, res) {
-	
-	var headers = {
-		'Authorization': 'Bearer ' + access_token
-	};
-	
-	var resource = request('GET', authServer.userInfoEndpoint,
-		{headers: headers}
-	);
-	if (resource.statusCode >= 200 && resource.statusCode < 300) {
-		var body = JSON.parse(resource.getBody());
-		console.log('Got data: ', body);
-	
-		userInfo = body;
-	
-		res.render('userinfo', {userInfo: userInfo, id_token: id_token});
-		return;
-	} else {
-		res.render('error', {error: 'Unable to fetch user information'});
-		return;
-	}
-	
-});
-
-app.get('/username_password', function(req, res) {
-	res.render('username_password');
-	return;
-});
-
-app.post('/username_password', function(req, res) {
-	
-	var username = req.body.username;
-	var password = req.body.password;
-	
-	var form_data = qs.stringify({
-				grant_type: 'password',
-				username: username,
-				password: password
-			});
-	var headers = {
-		'Content-Type': 'application/x-www-form-urlencoded',
-		'Authorization': 'Basic ' + new Buffer(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
-	};
-
-	var tokRes = request('POST', authServer.tokenEndpoint, 
-		{	
-			body: form_data,
-			headers: headers
-		}
-	);
-	
-	
-});
-
 app.use('/', express.static('files/client'));
 
 var server = app.listen(9000, 'localhost', function () {
