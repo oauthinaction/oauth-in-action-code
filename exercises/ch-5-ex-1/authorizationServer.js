@@ -50,9 +50,6 @@ app.get("/authorize", function(req, res){
 	 * Process the request, validate the client, and send the user to the approval page
 	 */
 	
-	res.render('error', {error: 'Not implemented'});
-	
-
 });
 
 app.post('/approve', function(req, res) {
@@ -60,8 +57,6 @@ app.post('/approve', function(req, res) {
 	/*
 	 * Process the results of the approval page, authorize the client
 	 */
-	
-	res.render('error', {error: 'Not implemented'});
 	
 });
 
@@ -71,9 +66,30 @@ app.post("/token", function(req, res){
 	 * Process the request, issue an access token
 	 */
 
-	res.status(501).json({ error: 'not_implemented' });
-	
 });
+
+var buildUrl = function(base, options, hash) {
+	var newUrl = url.parse(base, true);
+	delete newUrl.search;
+	if (!newUrl.query) {
+		newUrl.query = {};
+	}
+	__.each(options, function(value, key, list) {
+		newUrl.query[key] = value;
+	});
+	if (hash) {
+		newUrl.hash = hash;
+	}
+	
+	return url.format(newUrl);
+};
+
+var decodeClientCredentials = function(auth) {
+	var clientCredentials = new Buffer(auth.slice('basic '.length), 'base64').toString().split(':');
+	var clientId = querystring.unescape(clientCredentials[0]);
+	var clientSecret = querystring.unescape(clientCredentials[1]);	
+	return { id: clientId, secret: clientSecret };
+};
 
 app.use('/', express.static('files/authorizationServer'));
 
