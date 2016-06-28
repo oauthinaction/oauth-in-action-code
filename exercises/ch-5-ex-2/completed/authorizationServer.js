@@ -160,9 +160,6 @@ app.post("/token", function(req, res){
 			if (code.request.client_id == clientId) {
 
 				var access_token = randomstring.generate();
-				nosql.insert({ access_token: access_token, client_id: clientId });
-
-				var access_token = randomstring.generate();
 				var refresh_token = randomstring.generate();
 
 				nosql.insert({ access_token: access_token, client_id: clientId });

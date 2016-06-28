@@ -5,11 +5,8 @@ var randomstring = require("randomstring");
 var cons = require('consolidate');
 var nosql = require('nosql').load('database.nosql');
 var querystring = require('querystring');
-var qs = require("qs");
 var __ = require('underscore');
 __.string = require('underscore.string');
-var base64url = require('base64url');
-var jose = require('./lib/jsrsasign.js');
 
 var app = express();
 
@@ -30,13 +27,15 @@ var authServer = {
 // client information
 var clients = [
 
-  /*
-   * Enter client information here
-   */
 	{
 		"client_id": "oauth-client-1",
 		"client_secret": "oauth-client-secret-1",
 		"redirect_uris": ["http://localhost:9000/callback"]
+
+		/*
+		 * Add a set of allowed scopes for this client
+		 */
+
 	}
 ];
 
@@ -54,11 +53,6 @@ app.get('/', function(req, res) {
 
 app.get("/authorize", function(req, res){
 	
-	/*
-	 * Process the request, validate the client, and send the user to the approval page
-	 */
-	
-	
 	var client = getClient(req.query.client_id);
 	
 	if (!client) {
@@ -72,13 +66,17 @@ app.get("/authorize", function(req, res){
 	} else {
 		
 		/*
-		 * Process requested scopes, compare them to client's allowed scopes, and send them to the approval page
+		 * Validate that the set of scopes the client is requesting 
+		 * aligns with the set of scopes the client is registered for.
 		 */
 		
 		var reqid = randomstring.generate(8);
 		
 		requests[reqid] = req.query;
 		
+		/*
+		 * Send the requested scopes to the approval page for rendering
+		 */
 		res.render('approve', {client: client, reqid: reqid });
 		return;
 	}
@@ -98,57 +96,57 @@ app.post('/approve', function(req, res) {
 	}
 	
 	if (req.body.approve) {
-		// user approved access, check the response type
 		if (query.response_type == 'code') {
+			// user approved access
+
+			/*
+			 * Make sure the approved scopes from the form are allowed for this client
+			 */
+
+
 			var code = randomstring.generate(8);
 			
+			// save the code and request for later
+			
 			/*
-			 * Check the scopes coming in from the approval page
+			 * Save the approved scopes as part of this object
 			 */
 			
-			// save the code and request for later
-			codes[code] = { authorizationEndpointRequest: query };
+			codes[code] = { request: query };
 		
-			var urlParsed = url.parse(query.redirect_uri);
-			delete urlParsed.search; // this is a weird behavior of the URL library
-			urlParsed.query = urlParsed.query || {};
-			urlParsed.query.code = code;
-			urlParsed.query.state = query.state; 
-			res.redirect(url.format(urlParsed));
+			var urlParsed = buildUrl(query.redirect_uri, {
+				code: code,
+				state: query.state
+			});
+			res.redirect(urlParsed);
 			return;
 		} else {
 			// we got a response type we don't understand
-			var urlParsed = url.parse(query.redirect_uri);
-			delete urlParsed.search; // this is a weird behavior of the URL library
-			urlParsed.query = urlParsed.query || {};
-			urlParsed.query.error = 'unsupported_response_type';
-			res.redirect(url.format(urlParsed));
+			var urlParsed = buildUrl(query.redirect_uri, {
+				error: 'unsupported_response_type'
+			});
+			res.redirect(urlParsed);
 			return;
 		}
 	} else {
 		// user denied access
-		var urlParsed = url.parse(query.redirect_uri);
-		delete urlParsed.search; // this is a weird behavior of the URL library
-		urlParsed.query = urlParsed.query || {};
-		urlParsed.query.error = 'access_denied';
-		res.redirect(url.format(urlParsed));
+		var urlParsed = buildUrl(query.redirect_uri, {
+			error: 'access_denied'
+		});
+		res.redirect(urlParsed);
 		return;
 	}
-
+	
 });
 
 app.post("/token", function(req, res){
-
-	/*
-	 * Process the request, issue an access token
-	 */
 	
 	var auth = req.headers['authorization'];
 	if (auth) {
 		// check the auth header
-		var clientCredentials = new Buffer(auth.slice('basic '.length), 'base64').toString().split(':');
-		var clientId = querystring.unescape(clientCredentials[0]);
-		var clientSecret = querystring.unescape(clientCredentials[1]);
+		var clientCredentials = decodeClientCredentials(auth);
+		var clientId = clientCredentials.id;
+		var clientSecret = clientCredentials.secret;
 	}
 	
 	// otherwise, check the post body
@@ -183,18 +181,24 @@ app.post("/token", function(req, res){
 		
 		if (code) {
 			delete codes[req.body.code]; // burn our code, it's been used
-			if (code.authorizationEndpointRequest.client_id == clientId) {
+			if (code.request.client_id == clientId) {
 
 				/*
-				 * Attach the approved scopes to the tokens upon storage, and return the scopes in the token response
+				 * Save the approved scopes as part of the token's structure
 				 */
-				
+
 				var access_token = randomstring.generate();
 				var refresh_token = randomstring.generate();
 
 				nosql.insert({ access_token: access_token, client_id: clientId });
 				nosql.insert({ refresh_token: refresh_token, client_id: clientId });
 
+				console.log('Issuing access token %s', access_token);
+
+				/*
+				 * Return scopes as part of the token response
+				 */
+				
 				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: refresh_token };
 
 				res.status(200).json(token_response);
@@ -202,46 +206,79 @@ app.post("/token", function(req, res){
 				
 				return;
 			} else {
-				console.log('Client mismatch, expected %s got %s', code.authorizationEndpointRequest.client_id, clientId);
+				console.log('Client mismatch, expected %s got %s', code.request.client_id, clientId);
 				res.status(400).json({error: 'invalid_grant'});
 				return;
 			}
+		
+
 		} else {
 			console.log('Unknown code, %s', req.body.code);
 			res.status(400).json({error: 'invalid_grant'});
 			return;
 		}
 	} else if (req.body.grant_type == 'refresh_token') {
-		nosql.all(function(token) {
-			return (token.refresh_token == req.body.refresh_token);
-		}, function(err, tokens) {
-			if (tokens.length == 1) {
-				var token = tokens[0];
+		nosql.one(function(token) {
+			if (token.refresh_token == req.body.refresh_token) {
+				return token;	
+			}
+		}, function(err, token) {
+			if (token) {
+				console.log("We found a matching refresh token: %s", req.body.refresh_token);
 				if (token.client_id != clientId) {
-					console.log('Invalid client using a refresh token, expected %s got %s', token.client_id, clientId);
 					nosql.remove(function(found) { return (found == token); }, function () {} );
-					res.status(400).end();
-					return
+					res.status(400).json({error: 'invalid_grant'});
+					return;
 				}
-				console.log("We found a matching token: %s", req.body.refresh_token);
+				
+				/*
+				 * Bonus: handle scopes for a refresh token request appropriately
+				 */
+				
 				var access_token = randomstring.generate();
-				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: req.body.refresh_token };
 				nosql.insert({ access_token: access_token, client_id: clientId });
-				console.log('Issuing access token %s for refresh token %s', access_token, req.body.refresh_token);
+				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: token.refresh_token };
 				res.status(200).json(token_response);
 				return;
 			} else {
 				console.log('No matching token was found.');
-				res.status(401).end();
+				res.status(400).json({error: 'invalid_grant'});
+				return;
 			}
 		});
 	} else {
 		console.log('Unknown grant type %s', req.body.grant_type);
 		res.status(400).json({error: 'unsupported_grant_type'});
-		return;
 	}
+});
 
-);
+var buildUrl = function(base, options, hash) {
+	var newUrl = url.parse(base, true);
+	delete newUrl.search;
+	if (!newUrl.query) {
+		newUrl.query = {};
+	}
+	__.each(options, function(value, key, list) {
+		newUrl.query[key] = value;
+	});
+	if (hash) {
+		newUrl.hash = hash;
+	}
+	
+	return url.format(newUrl);
+};
+
+var decodeClientCredentials = function(auth) {
+	var clientCredentials = new Buffer(auth.slice('basic '.length), 'base64').toString().split(':');
+	var clientId = querystring.unescape(clientCredentials[0]);
+	var clientSecret = querystring.unescape(clientCredentials[1]);	
+	return { id: clientId, secret: clientSecret };
+};
+
+var getScopesFromForm = function(body) {
+	return __.filter(__.keys(body), function(s) { return __.string.startsWith(s, 'scope_'); })
+				.map(function(s) { return s.slice('scope_'.length); });
+};
 
 app.use('/', express.static('files/authorizationServer'));
 
