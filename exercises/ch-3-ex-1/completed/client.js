@@ -42,12 +42,11 @@ app.get('/', function (req, res) {
 app.get('/authorize', function(req, res){
 
 	access_token = null;
-	scope = null;
+
 	state = randomstring.generate();
 	
 	var authorizeUrl = buildUrl(authServer.authorizationEndpoint, {
 		response_type: 'code',
-		scope: client.scope,
 		client_id: client.client_id,
 		redirect_uri: client.redirect_uris[0],
 		state: state
@@ -65,9 +64,8 @@ app.get('/callback', function(req, res){
 		return;
 	}
 	
-	var resState = req.query.state;
-	if (resState != state) {
-		console.log('State DOES NOT MATCH: expected %s got %s', state, resState);
+	if (req.query.state != state) {
+		console.log('State DOES NOT MATCH: expected %s got %s', state, req.query.state);
 		res.render('error', {error: 'State value did not match'});
 		return;
 	}
@@ -75,21 +73,19 @@ app.get('/callback', function(req, res){
 	var code = req.query.code;
 
 	var form_data = qs.stringify({
-				grant_type: 'authorization_code',
-				code: code,
-				redirect_uri: client.redirect_uris[0]
-			});
+		grant_type: 'authorization_code',
+		code: code,
+		redirect_uri: client.redirect_uris[0]
+	});
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',
-		'Authorization': 'Basic ' + new Buffer(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
+		'Authorization': 'Basic ' + encodeClientCredentials(client.client_id, client.client_secret)
 	};
 
-	var tokRes = request('POST', authServer.tokenEndpoint, 
-		{	
+	var tokRes = request('POST', authServer.tokenEndpoint, {	
 			body: form_data,
 			headers: headers
-		}
-	);
+	});
 
 	console.log('Requesting access token for code %s',code);
 	
@@ -99,9 +95,6 @@ app.get('/callback', function(req, res){
 		access_token = body.access_token;
 		console.log('Got access token: %s', access_token);
 		
-		scope = body.scope;
-		console.log('Got scope: %s', scope);
-
 		res.render('index', {access_token: access_token, scope: scope});
 	} else {
 		res.render('error', {error: 'Unable to fetch access token, server response: ' + tokRes.statusCode})
@@ -117,8 +110,7 @@ app.get('/fetch_resource', function(req, res) {
 	console.log('Making request with access token %s', access_token);
 	
 	var headers = {
-		'Authorization': 'Bearer ' + access_token,
-		'Content-Type': 'application/x-www-form-urlencoded'
+		'Authorization': 'Bearer ' + access_token
 	};
 	
 	var resource = request('POST', protectedResource,
@@ -152,6 +144,10 @@ var buildUrl = function(base, options, hash) {
 	}
 	
 	return url.format(newUrl);
+};
+
+var encodeClientCredentials = function(clientId, clientSecret) {
+	return new Buffer(querystring.escape(clientId) + ':' + querystring.escape(clientSecret)).toString('base64');
 };
 
 app.use('/', express.static('files/client'));

@@ -65,10 +65,6 @@ app.get('/fetch_resource', function(req, res) {
 	 * Use the access token to call the resource server
 	 */
 	
-	if (!access_token) {
-		res.render('error', {error: 'Missing Access Token'});
-	}
-
 });
 
 var buildUrl = function(base, options, hash) {
@@ -85,6 +81,10 @@ var buildUrl = function(base, options, hash) {
 	}
 	
 	return url.format(newUrl);
+};
+
+var encodeClientCredentials = function(clientId, clientSecret) {
+	return new Buffer(querystring.escape(clientId) + ':' + querystring.escape(clientSecret)).toString('base64');
 };
 
 app.use('/', express.static('files/client'));
