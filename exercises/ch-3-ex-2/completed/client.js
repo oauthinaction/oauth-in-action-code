@@ -148,20 +148,18 @@ app.get('/fetch_resource', function(req, res) {
 
 var refreshAccessToken = function(req, res) {
 	var form_data = qs.stringify({
-				grant_type: 'refresh_token',
-				refresh_token: refresh_token
-			});
+		grant_type: 'refresh_token',
+		refresh_token: refresh_token
+	});
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',
-		'Authorization': 'Basic ' + new Buffer(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
+		'Authorization': 'Basic ' + encodeClientCredentials(client.client_id, client.client_secret)
 	};
 	console.log('Refreshing token %s', refresh_token);
-	var tokRes = request('POST', authServer.tokenEndpoint, 
-		{	
+	var tokRes = request('POST', authServer.tokenEndpoint, {	
 			body: form_data,
 			headers: headers
-		}
-	);
+	});
 	if (tokRes.statusCode >= 200 && tokRes.statusCode < 300) {
 		var body = JSON.parse(tokRes.getBody());
 
@@ -184,6 +182,26 @@ var refreshAccessToken = function(req, res) {
 		res.render('error', {error: 'Unable to refresh token.'});
 		return;
 	}
+};
+
+var buildUrl = function(base, options, hash) {
+	var newUrl = url.parse(base, true);
+	delete newUrl.search;
+	if (!newUrl.query) {
+		newUrl.query = {};
+	}
+	__.each(options, function(value, key, list) {
+		newUrl.query[key] = value;
+	});
+	if (hash) {
+		newUrl.hash = hash;
+	}
+	
+	return url.format(newUrl);
+};
+
+var encodeClientCredentials = function(clientId, clientSecret) {
+	return new Buffer(querystring.escape(clientId) + ':' + querystring.escape(clientSecret)).toString('base64');
 };
 
 app.use('/', express.static('files/client'));

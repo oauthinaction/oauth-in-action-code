@@ -84,7 +84,7 @@ app.get('/callback', function(req, res){
 			});
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',
-		'Authorization': 'Basic ' + new Buffer(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
+		'Authorization': 'Basic ' + encodeClientCredentials(client.client_id, client.client_secret)
 	};
 
 	var tokRes = request('POST', authServer.tokenEndpoint, 
@@ -133,14 +133,10 @@ app.get('/fetch_resource', function(req, res) {
 		res.render('data', {resource: body});
 		return;
 	} else {
-		access_token = null;
-		
 		/*
 		 * Instead of always returning an error, refresh the access token if we have a refresh token
 		 */
 
-		res.render('error', {error: resource.statusCode});
-		return;
 	}
 	
 	
@@ -168,6 +164,10 @@ var buildUrl = function(base, options, hash) {
 	}
 	
 	return url.format(newUrl);
+};
+
+var encodeClientCredentials = function(clientId, clientSecret) {
+	return new Buffer(querystring.escape(clientId) + ':' + querystring.escape(clientSecret)).toString('base64');
 };
 
 app.use('/', express.static('files/client'));
