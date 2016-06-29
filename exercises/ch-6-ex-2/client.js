@@ -1,7 +1,12 @@
 var express = require("express");
 var bodyParser = require('body-parser');
 var request = require("sync-request");
+var url = require("url");
+var qs = require("qs");
+var querystring = require('querystring');
 var cons = require('consolidate');
+var randomstring = require("randomstring");
+var base64url = require('base64url');
 
 var app = express();
 
@@ -15,10 +20,7 @@ app.set('views', 'files/client');
 // authorization server information
 var authServer = {
 	authorizationEndpoint: 'http://localhost:9001/authorize',
-	tokenEndpoint: 'http://localhost:9001/token',
-	revocationEndpoint: 'http://localhost:9001/revoke',
-	registrationEndpoint: 'http://localhost:9001/register',
-	userInfoEndpoint: 'http://localhost:9001/userinfo'
+	tokenEndpoint: 'http://localhost:9001/token'
 };
 
 // client information
@@ -26,8 +28,7 @@ var authServer = {
 var client = {
 	"client_id": "oauth-client-1",
 	"client_secret": "oauth-client-secret-1",
-	"redirect_uris": ["http://localhost:9000/callback"],
-	"scope": "openid profile email address phone"
+	"scope": "foo bar"
 };
 
 //var client = {};
@@ -52,23 +53,13 @@ app.get('/authorize', function(req, res){
 	 * Implement the client credentials flow here
 	 */
 	
-	
-	
-	res.render('error', {error: 'Not implemented yet'});
-
 });
 
 app.get('/fetch_resource', function(req, res) {
 
 	if (!access_token) {
-		if (refresh_token) {
-			// try to refresh and start again
-			refreshAccessToken(req, res);
-			return;
-		} else {
-			res.render('error', {error: 'Missing access token.'});
-			return;
-		}
+		res.render('error', {error: 'Missing access token.'});
+		return;
 	}
 	
 	console.log('Making request with access token %s', access_token);
@@ -100,6 +91,10 @@ app.get('/fetch_resource', function(req, res) {
 	
 	
 });
+
+var encodeClientCredentials = function(clientId, clientSecret) {
+	return new Buffer(querystring.escape(clientId) + ':' + querystring.escape(clientSecret)).toString('base64');
+};
 
 app.use('/', express.static('files/client'));
 
