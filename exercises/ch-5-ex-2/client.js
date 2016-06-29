@@ -207,8 +207,8 @@ app.get('/fetch_resource', function(req, res) {
 		return;
 	}
 	
-	
 });
+
 app.use('/', express.static('files/client'));
 
 var server = app.listen(9000, 'localhost', function () {
