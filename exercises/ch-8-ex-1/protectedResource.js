@@ -61,7 +61,6 @@ var getAccessToken = function(req, res, next) {
 	}
 	
 	console.log('Incoming token: %s', inToken);
-	/*
 	nosql.one(function(token) {
 		if (token.access_token == inToken) {
 			return token;	
@@ -76,72 +75,6 @@ var getAccessToken = function(req, res, next) {
 		next();
 		return;
 	});
-	*/
-	/*
-	//var signatureValid = jose.jws.JWS.verify(inToken, new Buffer(sharedTokenSecret).toString('hex'), ['HS256']);
-	var pubKey = jose.KEYUTIL.getKey(rsaKey);
-	var signatureValid = jose.jws.JWS.verify(inToken, pubKey, ['RS256']);
-	if (signatureValid) {
-		console.log('Signature validated.');
-		var tokenParts = inToken.split('.');
-		var payload = JSON.parse(base64url.decode(tokenParts[1]));
-		console.log('Payload', payload);
-		if (payload.iss == 'http://localhost:9001/') {
-			console.log('issuer OK');
-			if ((Array.isArray(payload.aud) && _.contains(payload.aud, 'http://localhost:9002/')) || 
-				payload.aud == 'http://localhost:9002/') {
-				console.log('Audience OK');
-				
-				var now = Math.floor(Date.now() / 1000);
-				
-				if (payload.iat <= now) {
-					console.log('issued-at OK');
-					if (payload.exp >= now) {
-						console.log('expiration OK');
-						
-						console.log('Token valid!');
-		
-						req.access_token = payload;
-						
-					}
-				}
-			}
-			
-		}
-			
-
-	}
-	next();
-	return;
-	*/
-	
-	var form_data = qs.stringify({
-		token: inToken
-	});
-	var headers = {
-		'Content-Type': 'application/x-www-form-urlencoded',
-		'Authorization': 'Basic ' + new Buffer(querystring.escape(protectedResources.resource_id) + ':' + querystring.escape(protectedResources.resource_secret)).toString('base64')
-	};
-
-	var tokRes = request('POST', authServer.introspectionEndpoint, 
-		{	
-			body: form_data,
-			headers: headers
-		}
-	);
-	
-	if (tokRes.statusCode >= 200 && tokRes.statusCode < 300) {
-		var body = JSON.parse(tokRes.getBody());
-	
-		console.log('Got introspection response', body);
-		var active = body.active;
-		if (active) {
-			req.access_token = body;
-		}
-	}
-	next();
-	return;
-	
 };
 
 var requireAccessToken = function(req, res, next) {
