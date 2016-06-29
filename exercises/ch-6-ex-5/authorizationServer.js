@@ -45,7 +45,7 @@ var clients = [
 		"client_id": "native-client-1",
 		"client_secret": "oauth-native-secret-1",
 		"redirect_uris": ["com.oauthinaction.mynativeapp://"],
-		"scope": "openid profile email phone address"
+		"scope": "foo bar"
 	}
 ];
 
