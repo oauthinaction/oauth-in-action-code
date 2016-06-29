@@ -662,6 +662,8 @@ app.post('/register', function (req, res){
 
 	clients.push(reg);
 	
+	console.log('Registered new client: ', reg);
+	
 	res.status(201).json(reg);
 	return;
 });

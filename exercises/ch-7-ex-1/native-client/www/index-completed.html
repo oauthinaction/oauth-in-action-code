@@ -1,0 +1,185 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>OAuth in Action: OAuth Native Client</title>
+    <link href="css/style.css" rel="stylesheet">
+    <script type="text/javascript" src="cordova.js"></script>
+    <script type="text/javascript" src="js/jquery.min.js"></script>
+  </head>
+  <body>
+
+    <header>OAuth in Action</header>
+
+    <div class="page">
+      
+      <div class="block">
+        <p>Client ID: <br><span class="label label-danger client-id-value"></span></p>
+        <p>Scope value: <br><span class="label label-danger oauth-scope-value"></span></p>
+        <p>Access token value: <br><span class="label label-danger oauth-access-token"></span></p>
+      </div>
+
+      <div class="block">
+        <button class="oauth-authorize" type="button">Get OAuth Token</button> 
+        <button class="oauth-fetch-resource" type="button">Get Protected Resource</button>
+      </div>
+
+      <div class="block">
+        <div>Data from protected resource:</div>
+        <div>
+          <pre class="oauth-protected-resource"></pre>
+        </div>
+      </div>
+
+    </div>  
+
+    <script>
+
+      function handleOpenURL(url) {
+        setTimeout(function() {
+          processCallback(url.substr(url.indexOf('?') + 1));
+        }, 0);
+      }
+ 
+      var callbackData;
+
+      // client information
+      var client = {
+        'client_name': 'Native OAuth Client',
+        'client_id': '',
+        'client_secret': '',
+        'redirect_uris': ['com.oauthinaction.mynativeapp://'],
+        'scope': 'foo bar'
+      };
+
+      // authorization server information
+      var authServer = {
+        authorizationEndpoint: 'http://localhost:9001/authorize',
+        tokenEndpoint: 'http://localhost:9001/token',
+	    registrationEndpoint: 'http://localhost:9001/register'
+      };
+
+      var protectedResource = 'http://localhost:9002/resource';
+      
+      function generateState(len) {
+        var ret = '';
+        var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+        for (var i=0; i < len; i++) {
+          // add random character
+          ret += possible.charAt(Math.floor(Math.random() * possible.length));  
+        }
+        
+        return ret;
+      }  
+
+      function handleAuthorizationRequestClick(ev) {
+		  if (!client.client_id) {
+		  	$.ajax({
+		  		url: authServer.registrationEndpoint,
+		  		type: 'POST',
+		  		data: client,
+		  		crossDomain: true,
+		  		dataType: 'json'             
+		  	}).done(function(data) {
+		  		client.client_id = data.client_id;
+		  		client.client_secret = data.client_secret;
+				$('.client-id-value').text(client.client_id);
+				handleAuthorizationRequestClick(ev);
+		  	}).fail(function() {
+		  		$('.oauth-protected-resource').text('Error while fetching registration endpoint');
+		  	});  
+		} else {
+			
+			var state = generateState(32);
+
+			localStorage.setItem('oauth-state', state);
+        
+        	var url = authServer.authorizationEndpoint + '?' +
+                'response_type=code' +
+                '&state=' + state +
+                '&scope=' + encodeURIComponent(client.scope) +
+                '&client_id=' + encodeURIComponent(client.client_id) +
+                '&redirect_uri=' + encodeURIComponent(client.redirect_uris[0]);
+
+			cordova.InAppBrowser.open(url, '_system');
+		}
+      }
+
+      function handleFetchResourceClick(ev) {
+        if (callbackData != null ) {
+
+          $.ajax({
+            url: protectedResource,
+            type: 'POST',
+            crossDomain: true,
+            dataType: 'json',
+            headers: {
+              'Authorization': 'Bearer ' + callbackData.access_token
+            }
+          }).done(function(data) {
+            $('.oauth-protected-resource').text(JSON.stringify(data));
+          }).fail(function() {
+            $('.oauth-protected-resource').text('Error while fetching the protected resource');
+          });
+
+        }
+      }
+
+      function processCallback(h) {
+        var whitelist = ['code', 'state']; // for parameters
+
+        callbackData = {};
+
+        h.split('&').forEach(function (e) {
+          var d = e.split('=');
+
+          if (whitelist.indexOf(d[0]) > -1) {
+            callbackData[d[0]] = d[1];  
+          }
+        });          
+
+        if (callbackData.state !== localStorage.getItem('oauth-state')) {
+          console.log('State DOES NOT MATCH: expected %s got %s', localStorage.getItem('oauth-state'), callbackData.state);
+          callbackData = null;
+          $('.oauth-protected-resource').text("Error state value did not match");
+        } else {
+          $.ajax({
+            url: authServer.tokenEndpoint,
+            type: 'POST',
+            crossDomain: true,
+            dataType: 'json',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'                 
+            },
+            data: {
+              grant_type: 'authorization_code',
+              code: callbackData.code,
+              client_id: client.client_id,
+              client_secret: client.client_secret,
+            }
+          }).done(function(data) {
+            $('.oauth-access-token').text(data.access_token);
+            callbackData.access_token = data.access_token;
+          }).fail(function() {
+            $('.oauth-protected-resource').text('Error while getting the access token');
+          });
+
+        }
+      }
+
+      // fill placeholder on UI
+      $('.oauth-scope-value').text(client.scope);
+
+      // UI button click handler
+      $('.oauth-authorize').on('click', handleAuthorizationRequestClick);
+      $('.oauth-fetch-resource').on('click', handleFetchResourceClick);
+ 
+            
+    </script>
+  </body>
+</html>
