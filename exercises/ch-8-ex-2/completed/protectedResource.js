@@ -9,9 +9,8 @@ var querystring = require('querystring');
 var request = require("sync-request");
 var __ = require('underscore');
 var base64url = require('base64url');
-var cors = require('cors');
 var jose = require('jsrsasign');
-
+var cors = require('cors');
 var app = express();
 
 app.use(bodyParser.urlencoded({ extended: true })); // support form-encoded bodies (for bearer tokens)
@@ -160,8 +159,6 @@ app.get("/helloWorld", cors(), getAccessToken, function(req, res){
 		
 		res.setHeader('X-Content-Type-Options','nosniff');
 		res.setHeader('X-XSS-Protection', '1; mode=block');
-		res.setHeader('Strict-Transport-Security', 'max-age=31536000');
-
 
 		var resource = {
 			"greeting" : ""
