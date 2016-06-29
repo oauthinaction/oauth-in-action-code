@@ -15,5 +15,5 @@ var server = app.listen(9000, 'localhost', function () {
 });
 
 app.get("/*", function(req, res){
-	res.sendFile(path.join(__dirname, "files/client/callback.html"));
+	res.sendFile(path.join(__dirname, "files/client/index.html"));
 });
