@@ -135,9 +135,11 @@ app.get("/authorize", function(req, res){
 		var cscope = client.scope ? client.scope.split(' ') : undefined;
 		if (__.difference(rscope, cscope).length > 0) {
 			// client asked for a scope it couldn't have
-			console.log('Invalid scope provided %s', rscope);
-			res.status(400);
-			res.render('error', {error: 'invalid_scope'});
+			var urlParsed = url.parse(req.query.redirect_uri);
+			delete urlParsed.search; // this is a weird behavior of the URL library
+			urlParsed.query = urlParsed.query || {};
+			urlParsed.query.error = 'invalid_scope';
+			res.redirect(url.format(urlParsed));
 			return;
 		}
 		
@@ -367,6 +369,15 @@ app.post("/token", function(req, res){
 		
 		if (code) {
 			delete codes[req.body.code]; // burn our code, it's been used
+
+			if (code.authorizationEndpointRequest.redirect_uri) {
+				if (code.authorizationEndpointRequest.redirect_uri != req.body.redirect_uri) {
+					console.log('redirect mismatch, expected %s', code.authorizationEndpointRequest.redirect_uri);
+					res.status(400).json({error: 'invalid_grant'});
+					return;
+				}
+			}
+			
 			if (code.authorizationEndpointRequest.client_id == clientId) {
 
 				var user = userInfo[code.user];
