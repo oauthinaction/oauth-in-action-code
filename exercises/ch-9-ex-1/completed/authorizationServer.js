@@ -230,11 +230,6 @@ app.post("/token", function(req, res){
 					res.status(400).json({error: 'invalid_grant'});
 					return;
 				}
-				
-				/*
-				 * Bonus: handle scopes for a refresh token request appropriately
-				 */
-				
 				var access_token = randomstring.generate();
 				nosql.insert({ access_token: access_token, client_id: clientId });
 				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: token.refresh_token };
