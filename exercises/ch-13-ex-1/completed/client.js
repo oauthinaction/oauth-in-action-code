@@ -21,13 +21,20 @@ app.engine('html', cons.underscore);
 app.set('view engine', 'html');
 app.set('views', 'files/client');
 
+// client information
+
+var client = {
+	"client_id": "oauth-client-1",
+	"client_secret": "oauth-client-secret-1",
+	"redirect_uris": ["http://localhost:9000/callback"],
+	"scope": "openid profile email phone address"
+};
+
 // authorization server information
 var authServer = {
 	authorizationEndpoint: 'http://localhost:9001/authorize',
 	tokenEndpoint: 'http://localhost:9001/token',
-	revocationEndpoint: 'http://localhost:9001/revoke',
-	registrationEndpoint: 'http://localhost:9001/register',
-	userInfoEndpoint: 'http://localhost:9001/userinfo'
+	userInfoEndpoint: 'http://localhost:9002/userinfo'
 };
 
 var rsaKey = {
@@ -38,14 +45,7 @@ var rsaKey = {
   "kid": "authserver"
 };
 
-// client information
-
-var client = {
-	"client_id": "oauth-client-1",
-	"client_secret": "oauth-client-secret-1",
-	"redirect_uris": ["http://localhost:9000/callback"],
-	"scope": "openid profile email address phone"
-};
+var protectedResource = 'http://localhost:9002/resource';
 
 var state = null;
 
@@ -56,7 +56,7 @@ var id_token = null;
 var userInfo = null;
 
 app.get('/', function (req, res) {
-	res.render('userinfo', {id_token: id_token, userInfo: userInfo});
+	res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope});
 });
 
 app.get('/authorize', function(req, res){
@@ -65,8 +65,6 @@ app.get('/authorize', function(req, res){
 	refresh_token = null;
 	scope = null;
 	state = randomstring.generate();
-	id_token = null;
-	userInfo = null;
 	
 	var authorizeUrl = buildUrl(authServer.authorizationEndpoint, {
 		response_type: 'code',
@@ -81,7 +79,7 @@ app.get('/authorize', function(req, res){
 });
 
 app.get("/callback", function(req, res){
-	
+
 	if (req.query.error) {
 		// it's an error response, act accordingly
 		res.render('error', {error: req.query.error});
@@ -102,11 +100,11 @@ app.get("/callback", function(req, res){
 	var form_data = qs.stringify({
 				grant_type: 'authorization_code',
 				code: code,
-				redirect_uri: client.redirect_uri
+				redirect_uri: client.redirect_uris[0]
 			});
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',
-		'Authorization': 'Basic ' + new Buffer(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
+		'Authorization': 'Basic ' + encodeClientCredentials(client.client_id, client.client_secret)
 	};
 
 	var tokRes = request('POST', authServer.tokenEndpoint, 
@@ -128,53 +126,86 @@ app.get("/callback", function(req, res){
 			console.log('Got refresh token: %s', refresh_token);
 		}
 		
+		scope = body.scope;
+		console.log('Got scope: %s', scope);
+
 		if (body.id_token) {
+			userInfo = null;
+			id_token = null;
+
 			console.log('Got ID token: %s', body.id_token);
-			
+	
 			// check the id token
 			var pubKey = jose.KEYUTIL.getKey(rsaKey);
-			var signatureValid = jose.jws.JWS.verify(body.id_token, pubKey, ['RS256']);
-			if (signatureValid) {
+			var tokenParts = body.id_token.split('.');
+			var payload = JSON.parse(base64url.decode(tokenParts[1]));
+			console.log('Payload', payload);
+			if (jose.jws.JWS.verify(body.id_token, pubKey, [rsaKey.alg])) {
 				console.log('Signature validated.');
-				var tokenParts = body.id_token.split('.');
-				var payload = JSON.parse(base64url.decode(tokenParts[1]));
-				console.log('Payload', payload);
 				if (payload.iss == 'http://localhost:9001/') {
 					console.log('issuer OK');
-					if ((Array.isArray(payload.aud) && _.contains(payload.aud, client.client_id)) || 
+					if ((Array.isArray(payload.aud) && __.contains(payload.aud, client.client_id)) || 
 						payload.aud == client.client_id) {
 						console.log('Audience OK');
-				
+		
 						var now = Math.floor(Date.now() / 1000);
-				
+		
 						if (payload.iat <= now) {
 							console.log('issued-at OK');
 							if (payload.exp >= now) {
 								console.log('expiration OK');
-						
+				
 								console.log('Token valid!');
-		
+
+								// save just the payload, not the container (which has been validated)
 								id_token = payload;
-						
+				
 							}
 						}
 					}
-			
 				}
-			
-
 			}
-			
-			
+			res.render('userinfo', {userInfo: userInfo, id_token: id_token});
+			return;
 		}
 		
-		scope = body.scope;
-		console.log('Got scope: %s', scope);
+		res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope});
+		return;
 
-		res.render('userinfo', {id_token: id_token, userInfo: userInfo});
 	} else {
 		res.render('error', {error: 'Unable to fetch access token, server response: ' + tokRes.statusCode})
+		return;
 	}
+});
+
+app.get('/fetch_resource', function(req, res) {
+
+	if (!access_token) {
+		res.render('error', {error: 'Missing access token.'});
+		return;
+	}
+	
+	console.log('Making request with access token %s', access_token);
+	
+	var headers = {
+		'Authorization': 'Bearer ' + access_token,
+		'Content-Type': 'application/x-www-form-urlencoded'
+	};
+	
+	var resource = request('POST', protectedResource,
+		{headers: headers}
+	);
+	
+	if (resource.statusCode >= 200 && resource.statusCode < 300) {
+		var body = JSON.parse(resource.getBody());
+		res.render('data', {resource: body});
+		return;
+	} else {
+		access_token = null;
+		res.render('error', {error: 'Server returned response code: ' + resource.statusCode});
+		return;
+	}
+	
 });
 
 app.get('/userinfo', function(req, res) {
@@ -186,7 +217,6 @@ app.get('/userinfo', function(req, res) {
 	var resource = request('GET', authServer.userInfoEndpoint,
 		{headers: headers}
 	);
-	console.log(resource);
 	if (resource.statusCode >= 200 && resource.statusCode < 300) {
 		var body = JSON.parse(resource.getBody());
 		console.log('Got data: ', body);
@@ -196,7 +226,7 @@ app.get('/userinfo', function(req, res) {
 		res.render('userinfo', {userInfo: userInfo, id_token: id_token});
 		return;
 	} else {
-		res.render('error', { error: 'Unable to fetch user information: ' + resource.statusCode });
+		res.render('error', {error: 'Unable to fetch user information'});
 		return;
 	}
 	
@@ -218,6 +248,10 @@ var buildUrl = function(base, options, hash) {
 	}
 	
 	return url.format(newUrl);
+};
+
+var encodeClientCredentials = function(clientId, clientSecret) {
+	return new Buffer(querystring.escape(clientId) + ':' + querystring.escape(clientSecret)).toString('base64');
 };
 
 var server = app.listen(9000, 'localhost', function () {
