@@ -2,8 +2,8 @@ var express = require("express");
 var bodyParser = require('body-parser');
 var cons = require('consolidate');
 var base64url = require('base64url');
-var jose = require('jsrsasign');
 var cors = require('cors');
+var jose = require('jsrsasign');
 
 var app = express();
 
@@ -22,8 +22,6 @@ var resource = {
 	"description": "This data has been protected by OAuth 2.0"
 };
 
-var sharedTokenSecret = "shared token secret!";
-
 var protectedResources = {
 		"resource_id": "protected-resource-1",
 		"resource_secret": "protected-resource-secret-1"
@@ -32,6 +30,9 @@ var protectedResources = {
 var authServer = {
 	introspectionEndpoint: 'http://localhost:9001/introspect'
 };
+
+
+var sharedTokenSecret = 'shared OAuth token secret!';
 
 
 var getAccessToken = function(req, res, next) {
@@ -49,14 +50,20 @@ var getAccessToken = function(req, res, next) {
 	
 	console.log('Incoming token: %s', inToken);
 	
-	var signatureValid = jose.jws.JWS.verify(inToken, new Buffer(sharedTokenSecret).toString('hex'), ['HS256']);
-	if (signatureValid) {
-		var tokenParts = inToken.split('.');
-		var payload = JSON.parse(base64url.decode(tokenParts[1]));
-		console.log('Payload', payload);
+	var tokenParts = inToken.split('.');
+	var header = JSON.parse(base64url.decode(tokenParts[0]));
+	var payload = JSON.parse(base64url.decode(tokenParts[1]));
+	console.log('Payload', payload);
+	
+	if (jose.jws.JWS.verify(inToken, 
+			new Buffer(sharedTokenSecret).toString('hex'), 
+			[header.alg])) {
+	
+		console.log('Signature validated');
+		
 		if (payload.iss == 'http://localhost:9001/') {
 			console.log('issuer OK');
-			if ((Array.isArray(payload.aud) && _.contains(payload.aud, 'http://localhost:9002/')) || 
+			if ((Array.isArray(payload.aud) && __.contains(payload.aud, 'http://localhost:9002/')) || 
 				payload.aud == 'http://localhost:9002/') {
 				console.log('Audience OK');
 			
