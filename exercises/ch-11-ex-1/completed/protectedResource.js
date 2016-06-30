@@ -51,7 +51,7 @@ var getAccessToken = function(req, res, next) {
 	console.log('Payload', payload);
 	if (payload.iss == 'http://localhost:9001/') {
 		console.log('issuer OK');
-		if ((Array.isArray(payload.aud) && _.contains(payload.aud, 'http://localhost:9002/')) || 
+		if ((Array.isArray(payload.aud) && __.contains(payload.aud, 'http://localhost:9002/')) || 
 			payload.aud == 'http://localhost:9002/') {
 			console.log('Audience OK');
 			

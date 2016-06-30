@@ -63,6 +63,10 @@ var getAccessToken = function(req, res, next) {
 	}
 	
 	console.log('Incoming token: %s', inToken);
+	
+	/*
+	 * Parse and validate the JWT here
+	 */
 				
 	next();
 	return;
