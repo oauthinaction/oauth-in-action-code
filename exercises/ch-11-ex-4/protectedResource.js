@@ -49,6 +49,11 @@ var getAccessToken = function(req, res, next) {
 	
 	console.log('Incoming token: %s', inToken);
 
+	/*
+	 * Send the incoming token to the introspection endpoint and parse the results
+	 */
+
+
 	next();
 	return;
 };
@@ -73,6 +78,10 @@ app.post("/resource", cors(), getAccessToken, function(req, res){
 	}
 	
 });
+
+var encodeClientCredentials = function(clientId, clientSecret) {
+	return new Buffer(querystring.escape(clientId) + ':' + querystring.escape(clientSecret)).toString('base64');
+};
 
 var server = app.listen(9002, 'localhost', function () {
   var host = server.address().address;

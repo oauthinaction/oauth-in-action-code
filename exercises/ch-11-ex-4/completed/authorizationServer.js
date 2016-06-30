@@ -7,6 +7,8 @@ var nosql = require('nosql').load('database.nosql');
 var querystring = require('querystring');
 var __ = require('underscore');
 __.string = require('underscore.string');
+var base64url = require('base64url');
+var jose = require('jsrsasign');
 
 var app = express();
 
@@ -26,23 +28,12 @@ var authServer = {
 
 // client information
 var clients = [
+
 	{
 		"client_id": "oauth-client-1",
 		"client_secret": "oauth-client-secret-1",
 		"redirect_uris": ["http://localhost:9000/callback"],
-		"scope": "openid profile email phone address"
-	},
-	{
-		"client_id": "oauth-client-2",
-		"client_secret": "oauth-client-secret-1",
-		"redirect_uris": ["http://localhost:9000/callback"],
-		"scope": "bar"
-	},
-	{
-		"client_id": "native-client-1",
-		"client_secret": "oauth-native-secret-1",
-		"redirect_uris": ["mynativeapp://"],
-		"scope": "openid profile email phone address"
+		"scope": "foo bar"
 	}
 ];
 
@@ -77,8 +68,7 @@ var userInfo = {
 		"name": "Carol",
 		"email": "carol.lewis@example.net",
 		"email_verified": true,
-		"username" : "clewis",
-		"password" : "user password!"
+		"username" : "clewis"
  	}	
 };
 
@@ -91,12 +81,11 @@ var getClient = function(clientId) {
 };
 
 var getProtectedResource = function(resourceId) {
-	return __.find(protectedResources, function(resource) { return resource.resource_id == resourceId; });
+	return __.find(protectedResources, function(protectedResource) { return protectedResource.resource_id == resourceId; });
 };
 
-
 var getUser = function(username) {
-	return __.find(userInfo, function (user, key) { return user.username == username; });
+	return userInfo[username];
 };
 
 app.get('/', function(req, res) {
@@ -120,12 +109,10 @@ app.get("/authorize", function(req, res){
 		var rscope = req.query.scope ? req.query.scope.split(' ') : undefined;
 		var cscope = client.scope ? client.scope.split(' ') : undefined;
 		if (__.difference(rscope, cscope).length > 0) {
-			// client asked for a scope it couldn't have
-			var urlParsed = url.parse(req.query.redirect_uri);
-			delete urlParsed.search; // this is a weird behavior of the URL library
-			urlParsed.query = urlParsed.query || {};
-			urlParsed.query.error = 'invalid_scope';
-			res.redirect(url.format(urlParsed));
+			var urlParsed = buildUrl(req.query.redirect_uri, {
+				error: 'invalid_scope'
+			});
+			res.redirect(urlParsed);
 			return;
 		}
 		
@@ -154,94 +141,59 @@ app.post('/approve', function(req, res) {
 	if (req.body.approve) {
 		if (query.response_type == 'code') {
 			// user approved access
-			var code = randomstring.generate(8);
-			
-			var user = req.body.user;
-		
-			var scope = __.filter(__.keys(req.body), function(s) { return __.string.startsWith(s, 'scope_'); })
-				.map(function(s) { return s.slice('scope_'.length); });
+
+			var rscope = getScopesFromForm(req.body);
 			var client = getClient(query.client_id);
 			var cscope = client.scope ? client.scope.split(' ') : undefined;
-			if (__.difference(scope, cscope).length > 0) {
-				// client asked for a scope it couldn't have
-				var urlParsed = url.parse(query.redirect_uri);
-				delete urlParsed.search; // this is a weird behavior of the URL library
-				urlParsed.query = urlParsed.query || {};
-				urlParsed.query.error = 'invalid_scope';
-				res.redirect(url.format(urlParsed));
+			if (__.difference(rscope, cscope).length > 0) {
+				var urlParsed = buildUrl(query.redirect_uri, {
+					error: 'invalid_scope'
+				});
+				res.redirect(urlParsed);
 				return;
 			}
 
+			var code = randomstring.generate(8);
+			
+			var user = getUser(req.body.user);
+			
 			// save the code and request for later
-			codes[code] = { authorizationEndpointRequest: query, scope: scope, user: user };
+			
+			codes[code] = { request: query, scope: rscope, user: user };
 		
-			var urlParsed =url.parse(query.redirect_uri);
-			delete urlParsed.search; // this is a weird behavior of the URL library
-			urlParsed.query = urlParsed.query || {};
-			urlParsed.query.code = code;
-			urlParsed.query.state = query.state; 
-			res.redirect(url.format(urlParsed));
+			var urlParsed = buildUrl(query.redirect_uri, {
+				code: code,
+				state: query.state
+			});
+			res.redirect(urlParsed);
 			return;
 		} else {
 			// we got a response type we don't understand
-			var urlParsed =url.parse(query.redirect_uri);
-			delete urlParsed.search; // this is a weird behavior of the URL library
-			urlParsed.query = urlParsed.query || {};
-			urlParsed.query.error = 'unsupported_response_type';
-			res.redirect(url.format(urlParsed));
+			var urlParsed = buildUrl(query.redirect_uri, {
+				error: 'unsupported_response_type'
+			});
+			res.redirect(urlParsed);
 			return;
 		}
 	} else {
 		// user denied access
-		var urlParsed =url.parse(query.redirect_uri);
-		delete urlParsed.search; // this is a weird behavior of the URL library
-		urlParsed.query = urlParsed.query || {};
-		urlParsed.query.error = 'access_denied';
-		res.redirect(url.format(urlParsed));
+		var urlParsed = buildUrl(query.redirect_uri, {
+			error: 'access_denied'
+		});
+		res.redirect(urlParsed);
 		return;
 	}
 	
 });
-
-var generateTokens = function (req, res, clientId, user, scope, nonce, generateRefreshToken) {
-	var access_token = randomstring.generate();
-
-	var refresh_token = null;
-
-	if (generateRefreshToken) {
-		refresh_token = randomstring.generate();	
-	}	
-
-	nosql.insert({ access_token: access_token, client_id: clientId, scope: scope, user: user });
-
-	if (refresh_token) {
-		nosql.insert({ refresh_token: refresh_token, client_id: clientId, scope: scope, user: user });
-	}
-	
-	console.log('Issuing access token %s', access_token);
-	if (refresh_token) {
-		console.log('and refresh token %s', refresh_token);
-	}
-	console.log('with scope %s', access_token, scope);
-
-	var cscope = null;
-	if (scope) {
-		cscope = scope.join(' ')
-	}
-
-	var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: refresh_token, scope: cscope };
-
-	return token_response;
-};
 
 app.post("/token", function(req, res){
 	
 	var auth = req.headers['authorization'];
 	if (auth) {
 		// check the auth header
-		var clientCredentials = new Buffer(auth.slice('basic '.length), 'base64').toString().split(':');
-		var clientId = querystring.unescape(clientCredentials[0]);
-		var clientSecret = querystring.unescape(clientCredentials[1]);
+		var clientCredentials = decodeClientCredentials(auth);
+		var clientId = clientCredentials.id;
+		var clientSecret = clientCredentials.secret;
 	}
 	
 	// otherwise, check the post body
@@ -276,24 +228,22 @@ app.post("/token", function(req, res){
 		
 		if (code) {
 			delete codes[req.body.code]; // burn our code, it's been used
-			if (code.authorizationEndpointRequest.client_id == clientId) {
+			if (code.request.client_id == clientId) {
 
-				var user = userInfo[code.user];
-				if (!user) {		
-					console.log('Unknown user %s', user)
-					res.status(500).render('error', {error: 'Unknown user ' + code.user});
-					return;
-				}	
-				console.log("User %j", user);
+				var access_token = randomstring.generate();
 
-				var token_response = generateTokens(req, res, clientId, user, code.scope, code.authorizationEndpointRequest.nonce, true);
+				nosql.insert({ access_token: access_token, client_id: clientId, scope: code.scope, user: code.user });
+
+				console.log('Issuing access token %s', access_token);
+
+				var token_response = { access_token: access_token, token_type: 'Bearer',  scope: code.scope.join(' ') };
 
 				res.status(200).json(token_response);
 				console.log('Issued tokens for code %s', req.body.code);
 				
 				return;
 			} else {
-				console.log('Client mismatch, expected %s got %s', code.authorizationEndpointRequest.client_id, clientId);
+				console.log('Client mismatch, expected %s got %s', code.request.client_id, clientId);
 				res.status(400).json({error: 'invalid_grant'});
 				return;
 			}
@@ -303,27 +253,27 @@ app.post("/token", function(req, res){
 			return;
 		}
 	} else if (req.body.grant_type == 'refresh_token') {
-		nosql.all(function(token) {
-			return (token.refresh_token == req.body.refresh_token);
-		}, function(err, tokens) {
-			if (tokens.length == 1) {
-				var token = tokens[0];
+		nosql.one(function(token) {
+			if (token.refresh_token == req.body.refresh_token) {
+				return token;	
+			}
+		}, function(err, token) {
+			if (token) {
+				console.log("We found a matching refresh token: %s", req.body.refresh_token);
 				if (token.client_id != clientId) {
-					console.log('Invalid client using a refresh token, expected %s got %s', token.client_id, clientId);
 					nosql.remove(function(found) { return (found == token); }, function () {} );
-					res.status(400).end();
-					return
+					res.status(400).json({error: 'invalid_grant'});
+					return;
 				}
-				console.log("We found a matching token: %s", req.body.refresh_token);
 				var access_token = randomstring.generate();
-				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: req.body.refresh_token };
 				nosql.insert({ access_token: access_token, client_id: clientId });
-				console.log('Issuing access token %s for refresh token %s', access_token, req.body.refresh_token);
+				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: token.refresh_token };
 				res.status(200).json(token_response);
 				return;
 			} else {
 				console.log('No matching token was found.');
-				res.status(401).end();
+				res.status(400).json({error: 'invalid_grant'});
+				return;
 			}
 		});
 	} else {
@@ -334,9 +284,9 @@ app.post("/token", function(req, res){
 
 app.post('/introspect', function(req, res) {
 	var auth = req.headers['authorization'];
-	var resourceCredentials = new Buffer(auth.slice('basic '.length), 'base64').toString().split(':');
-	var resourceId = querystring.unescape(resourceCredentials[0]);
-	var resourceSecret = querystring.unescape(resourceCredentials[1]);
+	var resourceCredentials = decodeClientCredentials(auth);
+	var resourceId = resourceCredentials.id;
+	var resourceSecret = resourceCredentials.secret;
 
 	var resource = getProtectedResource(resourceId);
 	if (!resource) {
@@ -361,20 +311,24 @@ app.post('/introspect', function(req, res) {
 		if (token) {
 			console.log("We found a matching token: %s", inToken);
 			
-			var introspectionResponse = {};
-			introspectionResponse.active = true;
-			introspectionResponse.iss = 'http://localhost:9001/';
-			introspectionResponse.sub = token.user;
-			introspectionResponse.scope = token.scope.join(' ');
-			introspectionResponse.client_id = token.client_id;
+			var introspectionResponse = {
+				active: true,
+				iss: 'http://localhost:9001/',
+				aud: 'http://localhost:9002/',
+				sub: token.user ? token.user.sub : undefined,
+				username: token.user ? token.user.preferred_username : undefined,
+				scope: token.scope ? token.scope.join(' ') : undefined,
+				client_id: token.client_id
+			};
 						
 			res.status(200).json(introspectionResponse);
 			return;
 		} else {
 			console.log('No matching token was found.');
 
-			var introspectionResponse = {};
-			introspectionResponse.active = false;
+			var introspectionResponse = {
+				active: false
+			};
 			res.status(200).json(introspectionResponse);
 			return;
 		}
@@ -382,6 +336,34 @@ app.post('/introspect', function(req, res) {
 	
 	
 });
+
+var buildUrl = function(base, options, hash) {
+	var newUrl = url.parse(base, true);
+	delete newUrl.search;
+	if (!newUrl.query) {
+		newUrl.query = {};
+	}
+	__.each(options, function(value, key, list) {
+		newUrl.query[key] = value;
+	});
+	if (hash) {
+		newUrl.hash = hash;
+	}
+	
+	return url.format(newUrl);
+};
+
+var decodeClientCredentials = function(auth) {
+	var clientCredentials = new Buffer(auth.slice('basic '.length), 'base64').toString().split(':');
+	var clientId = querystring.unescape(clientCredentials[0]);
+	var clientSecret = querystring.unescape(clientCredentials[1]);	
+	return { id: clientId, secret: clientSecret };
+};
+
+var getScopesFromForm = function(body) {
+	return __.filter(__.keys(body), function(s) { return __.string.startsWith(s, 'scope_'); })
+				.map(function(s) { return s.slice('scope_'.length); });
+};
 
 app.use('/', express.static('files/authorizationServer'));
 

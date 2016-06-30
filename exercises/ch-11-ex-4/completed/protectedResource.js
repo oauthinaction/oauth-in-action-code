@@ -24,7 +24,7 @@ var resource = {
 	"description": "This data has been protected by OAuth 2.0"
 };
 
-var protectedResources = {
+var protectedResource = {
 		"resource_id": "protected-resource-1",
 		"resource_secret": "protected-resource-secret-1"
 };
@@ -48,20 +48,19 @@ var getAccessToken = function(req, res, next) {
 	}
 	
 	console.log('Incoming token: %s', inToken);
+	
 	var form_data = qs.stringify({
 		token: inToken
 	});
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',
-		'Authorization': 'Basic ' + new Buffer(querystring.escape(protectedResources.resource_id) + ':' + querystring.escape(protectedResources.resource_secret)).toString('base64')
+		'Authorization': 'Basic ' + encodeClientCredentials(protectedResource.resource_id, protectedResource.resource_secret)
 	};
 
-	var tokRes = request('POST', authServer.introspectionEndpoint, 
-		{	
-			body: form_data,
-			headers: headers
-		}
-	);
+	var tokRes = request('POST', authServer.introspectionEndpoint, {	
+		body: form_data,
+		headers: headers
+	});
 	
 	if (tokRes.statusCode >= 200 && tokRes.statusCode < 300) {
 		var body = JSON.parse(tokRes.getBody());
@@ -96,6 +95,10 @@ app.post("/resource", cors(), getAccessToken, function(req, res){
 	}
 	
 });
+
+var encodeClientCredentials = function(clientId, clientSecret) {
+	return new Buffer(querystring.escape(clientId) + ':' + querystring.escape(clientSecret)).toString('base64');
+};
 
 var server = app.listen(9002, 'localhost', function () {
   var host = server.address().address;
