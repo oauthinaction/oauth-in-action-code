@@ -40,11 +40,11 @@
 		  <h2>Client information:</h2>
 		  <% _.each(clients, function(client) { %>
 		  <ul>
-			  <li><b>client_id:</b> <code><%- client.client_id %></code></li>
-			  <li><b>client_secret:</b> <code><%- client.client_secret %></code></li>
-			  <li><b>scope:</b> <code><%- client.scope %></code></li>
-			  <li><b>redirect_uri:</b> <code><%- client.redirect_uri %></code></li>
+			  <% _.each(client, function(value, key) { %>
+			  	<li><b><%- key %></b>: <code><%- JSON.stringify(value) %></code>
+			  <% }); %>
 		   </ul>
+		   <hr />
 		   <% }); %>
 		   <h2>Server information:</h2>
 		  <ul>

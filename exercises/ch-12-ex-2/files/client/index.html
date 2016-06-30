@@ -45,7 +45,17 @@
 		  <p>Registration access token: <span class="label label-danger"><%- client.registration_access_token ? client.registration_access_token : 'NONE' %></span></p>
 		  <p>Client configuration management endpoint: <span class="label label-danger"><%- client.registration_client_uri ? client.registration_client_uri : 'NONE' %></span></p>
 		  <a class="btn btn-default" href="/authorize">Get OAuth Token</a> 
-		  <a class="btn btn-default" href="/fetch_resource">Get Protected Resource</a> 
+		  <a class="btn btn-default" href="/fetch_resource">Get Protected Resource</a>
+		  <% if (client.registration_access_token) { %>
+		  <hr />
+		  <a class="btn btn-default" href="/read_client">Read Client Information</a>
+		  <form method="POST" action="/update_client">
+		  <label for="client_name">New Client Name</label>
+		  <input type="text" name="client_name" value="<%- client.client_name ? client.client_name : '' %>" />
+		  <button type="submit" class="btn btn-default" >Update Client Registration</button> 
+	  	  </form>
+		  <a class="btn btn-default" href="/unregister_client">Unregister Client</a> 
+		  <% } %>
       </div>
 
     </div><!-- /.container -->
