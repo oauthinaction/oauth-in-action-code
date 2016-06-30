@@ -33,8 +33,7 @@ var client = {
 // authorization server information
 var authServer = {
 	authorizationEndpoint: 'http://localhost:9001/authorize',
-	tokenEndpoint: 'http://localhost:9001/token',
-	userInfoEndpoint: 'http://localhost:9002/userinfo'
+	tokenEndpoint: 'http://localhost:9001/token'
 };
 
 var rsaKey = {
