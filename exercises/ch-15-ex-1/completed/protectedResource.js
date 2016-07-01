@@ -26,7 +26,7 @@ var resource = {
 	"description": "This data has been protected by OAuth 2.0"
 };
 
-var protectedResources = {
+var protectedResource = {
 		"resource_id": "protected-resource-1",
 		"resource_secret": "protected-resource-secret-1"
 };
@@ -43,7 +43,6 @@ var getAccessToken = function(req, res, next) {
 	if (auth && auth.toLowerCase().indexOf('pop') == 0) {
 		inToken = auth.slice('pop '.length);
 	} else if (req.body && req.body.pop_access_token) {
-		// not in the header, check in the form body
 		inToken = req.body.pop_access_token;
 	} else if (req.query && req.query.pop_access_token) {
 		inToken = req.query.pop_access_token
@@ -52,7 +51,9 @@ var getAccessToken = function(req, res, next) {
 	console.log('Incoming PoP: %s', inToken);
 	// parse the incoming PoP 
 	var tokenParts = inToken.split('.');
+	var header = JSON.parse(base64url.decode(tokenParts[0]));
 	var payload = JSON.parse(base64url.decode(tokenParts[1]));
+	
 	console.log('Payload', payload);
 	
 	var at = payload.at;
@@ -63,15 +64,13 @@ var getAccessToken = function(req, res, next) {
 	});
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',
-		'Authorization': 'Basic ' + new Buffer(querystring.escape(protectedResources.resource_id) + ':' + querystring.escape(protectedResources.resource_secret)).toString('base64')
+		'Authorization': 'Basic ' + encodeClientCredentials(protectedResource.resource_id, protectedResource.resource_secret)
 	};
 
-	var tokRes = request('POST', authServer.introspectionEndpoint, 
-		{	
-			body: form_data,
-			headers: headers
-		}
-	);
+	var tokRes = request('POST', authServer.introspectionEndpoint, {	
+		body: form_data,
+		headers: headers
+	});
 	
 	if (tokRes.statusCode >= 200 && tokRes.statusCode < 300) {
 		var body = JSON.parse(tokRes.getBody());
@@ -82,8 +81,7 @@ var getAccessToken = function(req, res, next) {
 			
 			// check the signature first
 			var pubKey = jose.KEYUTIL.getKey(body.access_token_key);
-			var signatureValid = jose.jws.JWS.verify(inToken, pubKey, ['RS256']);
-			if (signatureValid) {
+			if (jose.jws.JWS.verify(inToken, pubKey, [header.alg])) {
 				console.log('Signature is valid');
 				
 				if (!payload.m || payload.m == req.method) {
@@ -93,8 +91,10 @@ var getAccessToken = function(req, res, next) {
 							
 							// TODO: header and query tests
 							
-							req.access_token = payload.at;
-							req.scope = body.scope;
+							req.access_token = { 
+								access_token: at,
+								scope: body.scope
+							};
 							
 						}
 					}
@@ -129,6 +129,10 @@ app.post("/resource", cors(), getAccessToken, function(req, res){
 	}
 	
 });
+
+var encodeClientCredentials = function(clientId, clientSecret) {
+	return new Buffer(querystring.escape(clientId) + ':' + querystring.escape(clientSecret)).toString('base64');
+};
 
 var server = app.listen(9002, 'localhost', function () {
   var host = server.address().address;

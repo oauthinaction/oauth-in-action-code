@@ -6,6 +6,8 @@ var qs = require("qs");
 var querystring = require('querystring');
 var cons = require('consolidate');
 var randomstring = require("randomstring");
+var __ = require('underscore');
+__.string = require('underscore.string');
 var jose = require('jsrsasign');
 
 var app = express();
@@ -20,10 +22,7 @@ app.set('views', 'files/client');
 // authorization server information
 var authServer = {
 	authorizationEndpoint: 'http://localhost:9001/authorize',
-	tokenEndpoint: 'http://localhost:9001/token',
-	revocationEndpoint: 'http://localhost:9001/revoke',
-	registrationEndpoint: 'http://localhost:9001/register',
-	userInfoEndpoint: 'http://localhost:9001/userinfo'
+	tokenEndpoint: 'http://localhost:9001/token'
 };
 
 // client information
@@ -43,6 +42,7 @@ var access_token = null;
 var refresh_token = null;
 var scope = null;
 var key = null;
+var alg = null;
 
 app.get('/', function (req, res) {
 	res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope, key: key});
@@ -55,13 +55,13 @@ app.get('/authorize', function(req, res){
 	scope = null;
 	state = randomstring.generate();
 	
-	var authorizeUrl = url.parse(authServer.authorizationEndpoint, true);
-	delete authorizeUrl.search; // this is to get around odd behavior in the node URL library
-	authorizeUrl.query.response_type = 'code';
-	authorizeUrl.query.scope = client.scope;
-	authorizeUrl.query.client_id = client.client_id;
-	authorizeUrl.query.redirect_uri = client.redirect_uris[0];
-	authorizeUrl.query.state = state;
+	var authorizeUrl = buildUrl(authServer.authorizationEndpoint, {
+		response_type: 'code',
+		scope: client.scope,
+		client_id: client.client_id,
+		redirect_uri: client.redirect_uris[0],
+		state: state
+	});
 	
 	console.log("redirect", url.format(authorizeUrl));
 	res.redirect(url.format(authorizeUrl));
@@ -87,21 +87,19 @@ app.get("/callback", function(req, res){
 	var code = req.query.code;
 
 	var form_data = qs.stringify({
-				grant_type: 'authorization_code',
-				code: code,
-				redirect_uri: client.redirect_uri
-			});
+		grant_type: 'authorization_code',
+		code: code,
+		redirect_uri: client.redirect_uri
+	});
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',
-		'Authorization': 'Basic ' + new Buffer(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
+		'Authorization': 'Basic ' + encodeClientCredentials(client.client_id, client.client_secret)
 	};
 
-	var tokRes = request('POST', authServer.tokenEndpoint, 
-		{	
-			body: form_data,
-			headers: headers
-		}
-	);
+	var tokRes = request('POST', authServer.tokenEndpoint, {	
+		body: form_data,
+		headers: headers
+	});
 
 	console.log('Requesting access token for code %s',code);
 	
@@ -159,6 +157,26 @@ app.get('/fetch_resource', function(req, res) {
 	
 	
 });
+
+var buildUrl = function(base, options, hash) {
+	var newUrl = url.parse(base, true);
+	delete newUrl.search;
+	if (!newUrl.query) {
+		newUrl.query = {};
+	}
+	__.each(options, function(value, key, list) {
+		newUrl.query[key] = value;
+	});
+	if (hash) {
+		newUrl.hash = hash;
+	}
+	
+	return url.format(newUrl);
+};
+
+var encodeClientCredentials = function(clientId, clientSecret) {
+	return new Buffer(querystring.escape(clientId) + ':' + querystring.escape(clientSecret)).toString('base64');
+};
 
 app.use('/', express.static('files/client'));
 

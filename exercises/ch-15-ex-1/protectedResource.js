@@ -26,7 +26,7 @@ var resource = {
 	"description": "This data has been protected by OAuth 2.0"
 };
 
-var protectedResources = {
+var protectedResource = {
 		"resource_id": "protected-resource-1",
 		"resource_secret": "protected-resource-secret-1"
 };
@@ -39,13 +39,9 @@ var authServer = {
 var getAccessToken = function(req, res, next) {
 
 	/*
-	 * Check the incoming headers and parameters, process the PoP,
-	 * fetch the key, validate the signature, validate the request
+	 * Implement PoP signature validation and token lookup using introspection
 	 */
 
-	next();
-	return;
-	
 };
 
 var requireAccessToken = function(req, res, next) {
@@ -67,6 +63,10 @@ app.post("/resource", cors(), getAccessToken, function(req, res){
 	}
 	
 });
+
+var encodeClientCredentials = function(clientId, clientSecret) {
+	return new Buffer(querystring.escape(clientId) + ':' + querystring.escape(clientSecret)).toString('base64');
+};
 
 var server = app.listen(9002, 'localhost', function () {
   var host = server.address().address;
