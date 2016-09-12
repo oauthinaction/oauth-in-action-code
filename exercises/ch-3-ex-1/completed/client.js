@@ -105,6 +105,7 @@ app.get('/fetch_resource', function(req, res) {
 	
 	if (!access_token) {
 		res.render('error', {error: 'Missing Access Token'});
+		return;
 	}
 
 	console.log('Making request with access token %s', access_token);
