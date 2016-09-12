@@ -12,4 +12,4 @@ OAuth 2 in Action teaches you practical use and deployment of this protocol from
 
 ## About the authors
 
-Justin Richer is a systems architect, software engineer, standards editor, and service designer working as an independent consultant. Antonio Sanso works as Security Software Engineer, he is a vulnerability security researcher and an active open source contributor.
+Justin Richer is a systems architect, software engineer, standards editor, and service designer working as an independent consultant. [Antonio Sanso](http://blog.intothesymmetry.com/) works as Security Software Engineer, he is a vulnerability security researcher and an active open source contributor.
