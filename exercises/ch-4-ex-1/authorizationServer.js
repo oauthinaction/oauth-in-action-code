@@ -293,12 +293,6 @@ app.post("/token", function(req, res){
 			if (code.authorizationEndpointRequest.client_id == clientId) {
 
 				var user = userInfo[code.user];
-				if (!user) {		
-					console.log('Unknown user %s', user)
-					res.status(500).render('error', {error: 'Unknown user ' + code.user});
-					return;
-				}	
-				console.log("User %j", user);
 
 				var token_response = generateTokens(req, res, clientId, user, code.scope, code.authorizationEndpointRequest.nonce, true);
 
