@@ -164,10 +164,6 @@ var refreshAccessToken = function(req, res) {
 	}
 };
 
-app.get('/refresh', function(req, res)) {
-	refreshAccessToken();
-}
-
 app.get('/fetch_resource', function(req, res) {
 
 	if (!access_token) {
