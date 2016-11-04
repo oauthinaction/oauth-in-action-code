@@ -40,7 +40,7 @@ app.post("/resource", cors(), function(req, res){
 	/*
 	 * Check to see if the access token was found or not
 	 */
-	
+	}
 );
 
 var server = app.listen(9002, 'localhost', function () {
