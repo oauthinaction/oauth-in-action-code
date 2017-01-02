@@ -29,13 +29,13 @@ var getAccessToken = function(req, res, next) {
 	
 };
 
-app.options('/resource', cors());
+app.options('/resource');
 
 
 /*
  * Add the getAccessToken function to this handler
  */
-app.post("/resource", cors(), function(req, res){
+app.post("/resource", function(req, res){
 
 	/*
 	 * Check to see if the access token was found or not
