@@ -1,6 +1,6 @@
 # OAuth 2 in Action
 
-![Cover of OAuth 2 in Action](https://images.manning.com/255/340/resize/book/b/16faa4f-72db-4fdc-be33-c9c3400aae7f/Richer-OAuth2-HI-MEAP.png)
+![Cover of OAuth 2 in Action](https://images.manning.com/255/340/resize/book/e/14336f9-6493-46dc-938c-11a34c9d20ac/Richer-OAuth2-HI.png)
 
 https://www.manning.com/books/oauth-2-in-action
 
