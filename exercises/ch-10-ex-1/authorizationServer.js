@@ -185,6 +185,10 @@ app.post("/token", function(req, res){
 			delete codes[req.body.code]; // burn our code, it's been used
 			if (code.request.client_id == clientId) {
 
+				/*
+				 * Add code to check PKCE values here
+				 */
+
 				var access_token = randomstring.generate();
 				var refresh_token = randomstring.generate();
 

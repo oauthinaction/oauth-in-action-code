@@ -134,9 +134,10 @@ app.get('/fetch_resource', function(req, res) {
 		return;
 	} else {
 		/*
-		 * Instead of always returning an error, refresh the access token if we have a refresh token
+		 * Instead of always returning an error like we do here, refresh the access token if we have a refresh token
 		 */
-
+		console.log("resource status error code " + resource.statusCode);
+		res.render('error', {error: 'Unable to fetch resource. Status ' + resource.statusCode});
 	}
 	
 	

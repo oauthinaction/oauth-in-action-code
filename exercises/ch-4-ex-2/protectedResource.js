@@ -74,6 +74,7 @@ app.post('/words', getAccessToken, requireAccessToken, function(req, res) {
 	if (req.body.word) {
 		savedWords.push(req.body.word);
 	}
+	res.status(201).end();
 });
 
 app.delete('/words', getAccessToken, requireAccessToken, function(req, res) {
@@ -81,7 +82,7 @@ app.delete('/words', getAccessToken, requireAccessToken, function(req, res) {
 	 * Make this function require the "delete" scope
 	 */
 	savedWords.pop();
-	res.status(201).end();
+	res.status(204).end();
 });
 
 var server = app.listen(9002, 'localhost', function () {

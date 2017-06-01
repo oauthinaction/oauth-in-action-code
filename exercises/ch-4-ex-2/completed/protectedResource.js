@@ -65,7 +65,7 @@ app.get('/words', getAccessToken, requireAccessToken, function(req, res) {
 		res.json({words: savedWords.join(' '), timestamp: Date.now()});
 	} else {
 		res.set('WWW-Authenticate', 'Bearer realm=localhost:9002, error="insufficient_scope", scope="read"');
-		res.status(403);
+		res.status(403).end();
 	}
 });
 
@@ -77,7 +77,7 @@ app.post('/words', getAccessToken, requireAccessToken, function(req, res) {
 		res.status(201).end();
 	} else {
 		res.set('WWW-Authenticate', 'Bearer realm=localhost:9002, error="insufficient_scope", scope="write"');
-		res.status(403);
+		res.status(403).end();
 	}
 });
 
@@ -87,7 +87,7 @@ app.delete('/words', getAccessToken, requireAccessToken, function(req, res) {
 		res.status(204).end();
 	} else {
 		res.set('WWW-Authenticate', 'Bearer realm=localhost:9002, error="insufficient_scope", scope="delete"');
-		res.status(403);
+		res.status(403).end();
 	}
 });
 
