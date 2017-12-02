@@ -1,4 +1,8 @@
-var header = { 'typ': 'JWT', 'alg': rsaKey.alg, 'kid': rsaKey.kid};
+var header = { 
+	typ: 'JWT', 
+	alg: rsaKey.alg, 
+	kid: rsaKey.kid
+};
 
 var payload = {
 	iss: 'http://localhost:9001/',

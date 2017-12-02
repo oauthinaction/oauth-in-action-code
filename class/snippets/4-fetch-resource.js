@@ -68,8 +68,10 @@ app.post("/resource", cors(), getAccessToken, function(req, res){
 
 	if (req.access_token) {
 		res.json(resource);
+		return;
 	} else {
 		res.status(401).end();
+		return;
 	}
 	
 });

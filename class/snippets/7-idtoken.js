@@ -34,13 +34,18 @@ if (body.id_token) {
 	console.log('Got ID token: %s', body.id_token);
 
 	// check the id token
-	var pubKey = jose.KEYUTIL.getKey(rsaKey);
-	var signatureValid = jose.jws.JWS.verify(body.id_token, pubKey, [rsaKey.alg]);
-	if (signatureValid) {
+	var tokenParts = body.id_token.split('.');
+	var header = JSON.parse(base64url.decode(tokenParts[0]));
+	var payload = JSON.parse(base64url.decode(tokenParts[1]));
+
+	console.log('Payload', payload);
+
+	var pubKey = 
+	if (jose.jws.JWS.verify(body.id_token, 
+		jose.KEYUTIL.getKey(rsaKey), 
+		[header.alg])) {
+
 		console.log('Signature validated.');
-		var tokenParts = body.id_token.split('.');
-		var payload = JSON.parse(base64url.decode(tokenParts[1]));
-		console.log('Payload', payload);
 		if (payload.iss == 'http://localhost:9001/') {
 			console.log('issuer OK');
 			if ((Array.isArray(payload.aud) && __.contains(payload.aud, client.client_id)) || 
@@ -65,7 +70,5 @@ if (body.id_token) {
 		}
 	}
 	res.render('userinfo', {userInfo: userInfo, id_token: id_token});
-	
-} else {
-	res.render('index', {access_token: access_token, refresh_token: refresh_token, scope: scope});
+	return;
 }

@@ -20,21 +20,20 @@ app.get("/callback", function(req, res){
 	var code = req.query.code;
 
 	var form_data = qs.stringify({
-				grant_type: 'authorization_code',
-				code: code,
-				redirect_uri: client.redirect_uris[0]
-			});
+		grant_type: 'authorization_code',
+		code: code,
+		redirect_uri: client.redirect_uris[0]
+	});
+	
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',
 		'Authorization': 'Basic ' + encodeClientCredentials(client.client_id, client.client_secret)
 	};
 
-	var tokRes = request('POST', authServer.tokenEndpoint, 
-		{	
-			body: form_data,
-			headers: headers
-		}
-	);
+	var tokRes = request('POST', authServer.tokenEndpoint, {	
+		body: form_data,
+		headers: headers
+	});
 
 	console.log('Requesting access token for code %s',code);
 	
@@ -43,10 +42,6 @@ app.get("/callback", function(req, res){
 	
 		access_token = body.access_token;
 		console.log('Got access token: %s', access_token);
-		if (body.refresh_token) {
-			refresh_token = body.refresh_token;
-			console.log('Got refresh token: %s', refresh_token);
-		}
 		
 		scope = body.scope;
 		console.log('Got scope: %s', scope);
@@ -99,24 +94,28 @@ app.post("/token", function(req, res){
 	if (req.body.grant_type == 'authorization_code') {
 		
 		var code = codes[req.body.code];
+		delete codes[req.body.code]; // burn our code, it's been used
 		
 		if (code) {
-			delete codes[req.body.code]; // burn our code, it's been used
 			if (code.request.client_id == clientId) {
 
 				var access_token = randomstring.generate();
 
-				nosql.insert({ access_token: access_token, client_id: clientId, scope: code.scope, user: code.user });
+				nosql.insert({ 
+					access_token: access_token, 
+					client_id: clientId, 
+					scope: code.scope, 
+					user: code.user
+				});
 
 				console.log('Issuing access token %s', access_token);
 				console.log('with scope %s', code.scope);
 
-				var cscope = null;
-				if (code.scope) {
-					cscope = code.scope.join(' ');
-				}
-
-				var token_response = { access_token: access_token, token_type: 'Bearer', scope: cscope };
+				var token_response = { 
+					access_token: access_token, 
+					token_type: 'Bearer', 
+					scope: code.scope ? code.scope.join(' ') : null;
+				};
 
 				res.status(200).json(token_response);
 				console.log('Issued tokens for code %s', req.body.code);
@@ -135,5 +134,6 @@ app.post("/token", function(req, res){
 	} else {
 		console.log('Unknown grant type %s', req.body.grant_type);
 		res.status(400).json({error: 'unsupported_grant_type'});
+		return;
 	}
 });

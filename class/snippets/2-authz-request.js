@@ -17,6 +17,7 @@ app.get('/authorize', function(req, res){
 	
 	console.log("redirect", authorizeUrl);
 	res.redirect(authorizeUrl);
+	return;
 });
 
 // authorizationServer.js
