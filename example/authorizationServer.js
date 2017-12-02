@@ -33,7 +33,9 @@ var clients = [
 		"client_id": "oauth-client-1",
 		"client_secret": "oauth-client-secret-1",
 		"redirect_uris": ["http://localhost:9000/callback"],
-		"scope": "foo bar"
+		"scope": "foo bar",
+		"logo_uri": "https://images.manning.com/720/960/resize/book/e/14336f9-6493-46dc-938c-11a34c9d20ac/Richer-OAuth2-HI.png",
+		"client_name": "OAuth in Action Exercise Client"
 	},
 	{
 		"client_id": "oauth-client-2",

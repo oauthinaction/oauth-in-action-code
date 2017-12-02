@@ -16,6 +16,10 @@
 	.navbar-inverse {
 		background-color: #322;
 	}
+	.client-logo {
+		max-width: 40em;
+		max-height: 10em;
+	}
 	</style>
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -45,16 +49,21 @@
 		  <% if (client.client_uri) { %>
 		  <p><b>URI:</b> <code><%- client.client_uri %></code></p>
 		  <% } %>
+		  <% if (client.redirect_uris) { %>
+		  <p><b>Redirect To:</b> <code><%- client.redirect_uris[0] %></code></p>
+		  <% } %>
 		  <% if (client.logo_uri) { %>
-		  <p><b>logo:</b> <img src="<%- client.logo_uri %>" /></p>
+		  <p><b>logo:</b> <img class="client-logo" src="<%- client.logo_uri %>" /></p>
 		  <% } %>
 		  
 		   <form class="form" action="/approve" method="POST">
+<!--
 			   <label>Select user:</label>
 			   <select name="user">
 			     <option value="alice">Alice</option>
 			     <option value="bob">Bob</option>
 			   </select>
+-->
 			   <input type="hidden" name="reqid" value="<%- reqid %>">
 			   <% if (scope) { %>
 			   <p>The client is requesting access to the following:</p>
