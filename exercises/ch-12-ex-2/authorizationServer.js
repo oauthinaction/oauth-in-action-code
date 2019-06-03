@@ -239,7 +239,7 @@ app.post("/token", function(req, res){
 	}
 });
 
-var checkClientMetadata(req, res) {
+var checkClientMetadata = function(req, res) {
 	var reg = {};
 
 	if (!req.body.token_endpoint_auth_method) {
