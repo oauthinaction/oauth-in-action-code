@@ -211,7 +211,7 @@ app.get('/read_client', function(req, res) {
 	
 	if (regRes.statusCode == 200) {
 		client = JSON.parse(regRes.getBody());
-		res.render('data', {resource: clien});
+		res.render('data', {resource: client});
 		return;
 	} else {
 		res.render('error', {error: 'Unable to read client ' + regRes.statusCode});
