@@ -64,7 +64,7 @@ app.get("/authorize", function(req, res){
 		var rscope = req.query.scope ? req.query.scope.split(' ') : undefined;
 		var cscope = client.scope ? client.scope.split(' ') : undefined;
 		if (__.difference(rscope, cscope).length > 0) {
-			var urlParsed = buildUrl(query.redirect_uri, {
+			var urlParsed = buildUrl(req.query.redirect_uri, {
 				error: 'invalid_scope'
 			});
 			res.redirect(urlParsed);
