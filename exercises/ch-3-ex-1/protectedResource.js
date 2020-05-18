@@ -40,6 +40,7 @@ var getAccessToken = function(req, res, next) {
 			return token;	
 		}
 	}, function(err, token) {
+		console.log(err);
 		if (token) {
 			console.log("We found a matching token: %s", inToken);
 		} else {
@@ -49,11 +50,12 @@ var getAccessToken = function(req, res, next) {
 		next();
 		return;
 	});
+	console.log("end of getAccessToken")
 };
 
-app.options('/resource', cors());
-app.post("/resource", cors(), getAccessToken, function(req, res){
-
+// app.options('/resource', cors());
+// app.post("/resource", cors(), getAccessToken, function(req, res){
+app.post("/resource" , getAccessToken, function(req, res){
 	if (req.access_token) {
 		res.json(resource);
 	} else {
