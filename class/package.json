@@ -10,7 +10,7 @@
 	"qs": "^4.0.0",
 	"randomstring": "^1.0.7",
 	"nosql": "^3.0.3",
-	"base64url": "^1.0.4",
+	"base64url": "^3.0.1",
 	"cors": "^2.7.1",
 	"jsrsasign": "^5.0.0"
   }
