@@ -148,7 +148,7 @@ var buildUrl = function(base, options, hash) {
 };
 
 var encodeClientCredentials = function(clientId, clientSecret) {
-	return new Buffer(querystring.escape(clientId) + ':' + querystring.escape(clientSecret)).toString('base64');
+	return Buffer.from(querystring.escape(clientId) + ':' + querystring.escape(clientSecret)).toString('base64');
 };
 
 app.use('/', express.static('files/client'));

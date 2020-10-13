@@ -190,7 +190,7 @@ var buildUrl = function(base, options, hash) {
 };
 
 var encodeClientCredentials = function(clientId, clientSecret) {
-	return new Buffer(querystring.escape(clientId) + ':' + querystring.escape(clientSecret)).toString('base64');
+	return Buffer.from(querystring.escape(clientId) + ':' + querystring.escape(clientSecret)).toString('base64');
 };
 
 var server = app.listen(9000, 'localhost', function () {

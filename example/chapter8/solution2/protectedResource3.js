@@ -63,23 +63,22 @@ var getAccessToken = function(req, res, next) {
 	
 	console.log('Incoming token: %s', inToken);
 	/*
-	nosql.one(function(token) {
-		if (token.access_token == inToken) {
-			return token;	
-		}
-	}, function(err, token) {
-		if (token) {
-			console.log("We found a matching token: %s", inToken);
-		} else {
-			console.log('No matching token was found.');
-		}
-		req.access_token = token;
-		next();
-		return;
+	nosql.one().make(function(builder) {
+	  builder.where('access_token', inToken);
+	  builder.callback(function(err, token) {
+	    if (token) {
+	      console.log("We found a matching token: %s", inToken);
+	    } else {
+	      console.log('No matching token was found.');
+	    };
+	    req.access_token = token;
+	    next();
+	    return;
+	  })
 	});
 	*/
 	/*
-	//var signatureValid = jose.jws.JWS.verify(inToken, new Buffer(sharedTokenSecret).toString('hex'), ['HS256']);
+	//var signatureValid = jose.jws.JWS.verify(inToken, Buffer.from(sharedTokenSecret).toString('hex'), ['HS256']);
 	var pubKey = jose.KEYUTIL.getKey(rsaKey);
 	var signatureValid = jose.jws.JWS.verify(inToken, pubKey, ['RS256']);
 	if (signatureValid) {
@@ -121,7 +120,7 @@ var getAccessToken = function(req, res, next) {
 	});
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',
-		'Authorization': 'Basic ' + new Buffer(querystring.escape(protectedResources.resource_id) + ':' + querystring.escape(protectedResources.resource_secret)).toString('base64')
+		'Authorization': 'Basic ' + Buffer.from(querystring.escape(protectedResources.resource_id) + ':' + querystring.escape(protectedResources.resource_secret)).toString('base64')
 	};
 
 	var tokRes = request('POST', authServer.introspectionEndpoint, 

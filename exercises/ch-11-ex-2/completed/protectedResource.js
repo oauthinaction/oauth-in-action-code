@@ -56,7 +56,7 @@ var getAccessToken = function(req, res, next) {
 	console.log('Payload', payload);
 	
 	if (jose.jws.JWS.verify(inToken, 
-			new Buffer(sharedTokenSecret).toString('hex'), 
+			Buffer.from(sharedTokenSecret).toString('hex'), 
 			[header.alg])) {
 	
 		console.log('Signature validated');

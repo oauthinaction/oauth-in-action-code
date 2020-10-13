@@ -238,41 +238,39 @@ app.post('/introspect', function(req, res) {
 	
 	var inToken = req.body.token;
 	console.log('Introspecting token %s', inToken);
-	nosql.one(function(token) {
-		if (token.access_token == inToken) {
-			return token;	
-		}
-	}, function(err, token) {
-		if (token) {
-			console.log("We found a matching token: %s", inToken);
+	nosql.one().make(function(builder) {
+	  builder.where('access_token', inToken);
+	  builder.callback(function(err, token) {
+	    if (token) {
+  			console.log("We found a matching token: %s", inToken);
 			
-			var introspectionResponse = {
-				active: true,
-				iss: 'http://localhost:9001/',
-				aud: 'http://localhost:9002/',
-				sub: token.user ? token.user.sub : undefined,
-				username: token.user ? token.user.preferred_username : undefined,
-				scope: token.scope ? token.scope.join(' ') : undefined,
-				client_id: token.client_id
-			};
+  			var introspectionResponse = {
+  				active: true,
+  				iss: 'http://localhost:9001/',
+  				aud: 'http://localhost:9002/',
+  				sub: token.user ? token.user.sub : undefined,
+  				username: token.user ? token.user.preferred_username : undefined,
+  				scope: token.scope ? token.scope.join(' ') : undefined,
+  				client_id: token.client_id
+  			};
 			
-			/*
-			 * Add in the key and algorithm associated with the token to the introspection response
-			 */
+  			/*
+  			 * Add in the key and algorithm associated with the token to the introspection response
+  			 */
 						
-			res.status(200).json(introspectionResponse);
-			return;
-		} else {
-			console.log('No matching token was found.');
+  			res.status(200).json(introspectionResponse);
+  			return;
+	    } else {
+  			console.log('No matching token was found.');
 
-			var introspectionResponse = {
-				active: false
-			};
-			res.status(200).json(introspectionResponse);
-			return;
-		}
+  			var introspectionResponse = {
+  				active: false
+  			};
+  			res.status(200).json(introspectionResponse);
+  			return;
+	    }
+	  })
 	});
-	
 	
 });
 
@@ -301,7 +299,7 @@ var getScopesFromForm = function(body) {
 };
 
 var decodeClientCredentials = function(auth) {
-	var clientCredentials = new Buffer(auth.slice('basic '.length), 'base64').toString().split(':');
+	var clientCredentials = Buffer.from(auth.slice('basic '.length), 'base64').toString().split(':');
 	var clientId = querystring.unescape(clientCredentials[0]);
 	var clientSecret = querystring.unescape(clientCredentials[1]);	
 	return { id: clientId, secret: clientSecret };

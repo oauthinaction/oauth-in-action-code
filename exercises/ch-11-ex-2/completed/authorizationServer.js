@@ -237,7 +237,7 @@ app.post("/token", function(req, res){
 				var access_token = jose.jws.JWS.sign(header.alg,
 					JSON.stringify(header),
 					JSON.stringify(payload),
-					new Buffer(sharedTokenSecret).toString('hex'));
+					Buffer.from(sharedTokenSecret).toString('hex'));
 
 				nosql.insert({ access_token: access_token, client_id: clientId, scope: code.scope, user: code.user });
 
@@ -262,12 +262,10 @@ app.post("/token", function(req, res){
 			return;
 		}
 	} else if (req.body.grant_type == 'refresh_token') {
-		nosql.one(function(token) {
-			if (token.refresh_token == req.body.refresh_token) {
-				return token;	
-			}
-		}, function(err, token) {
-			if (token) {
+	nosql.one().make(function(builder) {
+	  builder.where('refresh_token', req.body.refresh_token);
+	  builder.callback(function(err, token) {
+	    if (token) {
 				console.log("We found a matching refresh token: %s", req.body.refresh_token);
 				if (token.client_id != clientId) {
 					nosql.remove(function(found) { return (found == token); }, function () {} );
@@ -279,12 +277,13 @@ app.post("/token", function(req, res){
 				var token_response = { access_token: access_token, token_type: 'Bearer',  refresh_token: token.refresh_token };
 				res.status(200).json(token_response);
 				return;
-			} else {
+	    } else {
 				console.log('No matching token was found.');
 				res.status(400).json({error: 'invalid_grant'});
 				return;
-			}
-		});
+	    };
+	  })
+	});
 	} else {
 		console.log('Unknown grant type %s', req.body.grant_type);
 		res.status(400).json({error: 'unsupported_grant_type'});
@@ -308,7 +307,7 @@ var buildUrl = function(base, options, hash) {
 };
 
 var decodeClientCredentials = function(auth) {
-	var clientCredentials = new Buffer(auth.slice('basic '.length), 'base64').toString().split(':');
+	var clientCredentials = Buffer.from(auth.slice('basic '.length), 'base64').toString().split(':');
 	var clientId = querystring.unescape(clientCredentials[0]);
 	var clientSecret = querystring.unescape(clientCredentials[1]);	
 	return { id: clientId, secret: clientSecret };
