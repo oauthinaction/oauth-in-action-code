@@ -151,7 +151,7 @@ app.get("/callback", function(req, res){
 			});
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',
-		'Authorization': 'Basic ' + new Buffer(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
+		'Authorization': 'Basic ' + Buffer.from(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
 	};
 
 	var tokRes = request('POST', authServer.tokenEndpoint, 
@@ -318,7 +318,7 @@ app.post('/revoke', function(req, res) {
 	});
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',
- 		'Authorization': 'Basic ' + new Buffer(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
+ 		'Authorization': 'Basic ' + Buffer.from(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
 	};
 	console.log('Revoking token %s', access_token);
 	var tokRes = request('POST', authServer.revocationEndpoint, 
@@ -382,7 +382,7 @@ app.post('/username_password', function(req, res) {
 			});
 	var headers = {
 		'Content-Type': 'application/x-www-form-urlencoded',
-		'Authorization': 'Basic ' + new Buffer(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
+		'Authorization': 'Basic ' + Buffer.from(querystring.escape(client.client_id) + ':' + querystring.escape(client.client_secret)).toString('base64')
 	};
 
 	var tokRes = request('POST', authServer.tokenEndpoint, 

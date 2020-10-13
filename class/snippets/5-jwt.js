@@ -21,7 +21,7 @@ var stringPayload = JSON.stringify(payload);
 //var encodedPayload = base64url.encode(JSON.stringify(payload));
 
 //var access_token = encodedHeader + '.' + encodedPayload + '.';
-//var access_token = jose.jws.JWS.sign('HS256', stringHeader, stringPayload, new Buffer(sharedTokenSecret).toString('hex'));
+//var access_token = jose.jws.JWS.sign('HS256', stringHeader, stringPayload, Buffer.from(sharedTokenSecret).toString('hex'));
 
 var privateKey = jose.KEYUTIL.getKey(rsaKey);
 var access_token = jose.jws.JWS.sign(rsaKey.alg, stringHeader, stringPayload, privateKey);
