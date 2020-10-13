@@ -413,9 +413,9 @@ app.post("/token", function(req, res){
 		return;	
 		
 	} else if (req.body.grant_type == 'refresh_token') {
-		nosql.all(function(token) {
-			return (token.refresh_token == req.body.refresh_token);
-		}, function(err, tokens) {
+	nosql.all().make(function(builder) {
+	  builder.where('refresh_token', req.body.refresh_token);
+	  builder.callback(function(err, tokens) {
 			if (tokens.length == 1) {
 				var token = tokens[0];
 				if (token.client_id != clientId) {
@@ -435,7 +435,8 @@ app.post("/token", function(req, res){
 				console.log('No matching token was found.');
 				res.status(401).end();
 			}
-		});
+	  })
+	});
 	} else if (req.body.grant_type == 'password') {
 		var username = req.body.username;
 		var user = getUser(username);
@@ -534,12 +535,10 @@ app.post('/introspect', function(req, res) {
 	
 	var inToken = req.body.token;
 	console.log('Introspecting token %s', inToken);
-	nosql.one(function(token) {
-		if (token.access_token == inToken) {
-			return token;	
-		}
-	}, function(err, token) {
-		if (token) {
+	nosql.one().make(function(builder) {
+	  builder.where('access_token', inToken);
+	  builder.callback(function(err, token) {
+	    if (token) {
 			console.log("We found a matching token: %s", inToken);
 			
 			var introspectionResponse = {};
@@ -551,14 +550,15 @@ app.post('/introspect', function(req, res) {
 						
 			res.status(200).json(introspectionResponse);
 			return;
-		} else {
+	    } else {
 			console.log('No matching token was found.');
 
 			var introspectionResponse = {};
 			introspectionResponse.active = false;
 			res.status(200).json(introspectionResponse);
 			return;
-		}
+	    };
+	  })
 	});
 	
 	
@@ -758,19 +758,18 @@ var getAccessToken = function(req, res, next) {
 	}
 	
 	console.log('Incoming token: %s', inToken);
-	nosql.one(function(token) {
-		if (token.access_token == inToken) {
-			return token;	
-		}
-	}, function(err, token) {
-		if (token) {
-			console.log("We found a matching token: %s", inToken);
-		} else {
-			console.log('No matching token was found.');
-		}
-		req.access_token = token;
-		next();
-		return;
+	nosql.one().make(function(builder) {
+	  builder.where('access_token', inToken);
+	  builder.callback(function(err, token) {
+	    if (token) {
+	      console.log("We found a matching token: %s", inToken);
+	    } else {
+	      console.log('No matching token was found.');
+	    };
+	    req.access_token = token;
+	    next();
+	    return;
+	  })
 	});
 };
 

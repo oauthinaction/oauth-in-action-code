@@ -334,9 +334,9 @@ app.post("/token", function(req, res){
 		return;	
 		
 	} else if (req.body.grant_type == 'refresh_token') {
-		nosql.all(function(token) {
-			return (token.refresh_token == req.body.refresh_token);
-		}, function(err, tokens) {
+	nosql.all().make(function(builder) {
+	  builder.where('refresh_token', req.body.refresh_token);
+	  builder.callback(function(err, tokens) {
 			if (tokens.length == 1) {
 				var token = tokens[0];
 				if (token.client_id != clientId) {
@@ -356,7 +356,8 @@ app.post("/token", function(req, res){
 				console.log('No matching token was found.');
 				res.status(401).end();
 			}
-		});
+	  })
+	});
 	} else if (req.body.grant_type == 'password') {
 		var username = req.body.username;
 		var user = getUser(username);
