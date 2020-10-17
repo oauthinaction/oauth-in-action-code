@@ -54,7 +54,7 @@ var getAccessToken = function(req, res, next) {
 	    req.access_token = token;
 	    next();
 	    return;
-	  })
+	  });
 	});
 	
 };
