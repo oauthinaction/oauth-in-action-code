@@ -216,7 +216,7 @@ app.post("/token", function(req, res){
 	    if (token) {
 				console.log("We found a matching refresh token: %s", req.body.refresh_token);
 				if (token.client_id != clientId) {
-					nosql.remove(function(found) { return (found == token); }, function () {} );
+					nosql.remove().make(function(builder) { builder.where('refresh_token', req.body.refresh_token); });
 					res.status(400).json({error: 'invalid_grant'});
 					return;
 				}
@@ -402,13 +402,12 @@ app.put('/register/:clientId', authorizeConfigurationEndpointRequest, function(r
 app.delete('/register/:clientId', authorizeConfigurationEndpointRequest, function(req, res) {
 	clients = __.reject(clients, __.matches({client_id: client.client_id}));
 
-	nosql.remove(function(token) {
-		if (token.client_id == clientId) {
-			return true;	
-		}
-	}, function(err, count) {
-		console.log("Removed %s clients", count);
-	});
+  nosql.remove().make(function(builder) {
+    builder.where('client_id', clientId);
+    builder.callback(function(err, count) {
+      console.log("Removed %s tokens", count);
+    });
+  });
 	
 	res.status(204).end();
 	return;

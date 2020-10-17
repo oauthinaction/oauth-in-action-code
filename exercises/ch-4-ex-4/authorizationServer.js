@@ -341,7 +341,7 @@ app.post("/token", function(req, res){
 				var token = tokens[0];
 				if (token.client_id != clientId) {
 					console.log('Invalid client using a refresh token, expected %s got %s', token.client_id, clientId);
-					nosql.remove(function(found) { return (found == token); }, function () {} );
+					nosql.remove().make(function(builder) { builder.where('refresh_token', req.body.refresh_token); });
 					res.status(400).end();
 					return
 				}

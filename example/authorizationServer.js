@@ -419,7 +419,7 @@ app.post("/token", function(req, res){
 				var token = tokens[0];
 				if (token.client_id != clientId) {
 					console.log('Invalid client using a refresh token, expected %s got %s', token.client_id, clientId);
-					nosql.remove(function(found) { return (found == token); }, function () {} );
+					nosql.remove().make(function(builder) { builder.where('refresh_token', req.body.refresh_token); });
 					res.status(400).end();
 					return
 				}
@@ -501,15 +501,16 @@ app.post('/revoke', function(req, res) {
 	}
 	
 	var inToken = req.body.token;
-	nosql.remove(function(token) {
-		if (token.access_token == inToken && token.client_id == clientId) {
-			return true;	
-		}
-	}, function(err, count) {
-		console.log("Removed %s tokens", count);
-		res.status(204).end();
-		return;
-	});
+  nosql.remove().make(function(builder) {
+    builder.and();
+    builder.where('access_token', inToken);
+    builder.where('client_id', clientId);
+    builder.callback(function(err, count) {
+      console.log("Removed %s tokens", count);
+      res.status(204).end();
+      return;
+    });
+  });
 	
 });
 
@@ -727,13 +728,12 @@ app.put('/register/:clientId', validateConfigurationEndpointRequest, function(re
 app.delete('/register/:clientId', validateConfigurationEndpointRequest, function(req, res) {
 	clients = __.reject(clients, __.matches({client_id: client.client_id}));
 
-	nosql.remove(function(token) {
-		if (token.client_id == clientId) {
-			return true;	
-		}
-	}, function(err, count) {
-		console.log("Removed %s tokens", count);
-	});
+  nosql.remove().make(function(builder) {
+    builder.where('client_id', clientId);
+    builder.callback(function(err, count) {
+      console.log("Removed %s tokens", count);
+    });
+  });
 	
 	res.status(204).end();
 	return;

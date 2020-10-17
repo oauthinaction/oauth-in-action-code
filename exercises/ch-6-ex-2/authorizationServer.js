@@ -220,7 +220,7 @@ app.post("/token", function(req, res){
 	    if (token) {
 				console.log("We found a matching refresh token: %s", req.body.refresh_token);
 				if (token.client_id != clientId) {
-					nosql.remove(function(found) { return (found == token); }, function () {} );
+					nosql.remove().make(function(builder) { builder.where('refresh_token', req.body.refresh_token); });
 					res.status(400).json({error: 'invalid_grant'});
 					return;
 				}
