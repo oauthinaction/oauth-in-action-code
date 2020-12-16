@@ -31,6 +31,28 @@ var client = {
 	"redirect_uris": ["http://localhost:9000/callback"]
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var protectedResource = 'http://localhost:9002/resource';
 
 var state = null;
