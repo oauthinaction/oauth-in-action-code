@@ -10,6 +10,7 @@ __.string = require('underscore.string');
 
 var app = express();
 
+// to use static file
 app.engine('html', cons.underscore);
 app.set('view engine', 'html');
 app.set('views', 'files/client');
@@ -21,8 +22,6 @@ var authServer = {
 };
 
 // client information
-
-
 /*
  * Add the client information in here
  */
