@@ -412,7 +412,7 @@ app.post("/token", function(req, res){
 		return;	
 		
 	} else if (req.body.grant_type == 'refresh_token') {
-	nosql.all().make(function(builder) {
+	nosql.find().make(function(builder) {
 	  builder.where('refresh_token', req.body.refresh_token);
 	  builder.callback(function(err, tokens) {
 			if (tokens.length == 1) {
