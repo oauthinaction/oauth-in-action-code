@@ -9,7 +9,7 @@ var __ = require('underscore');
 __.string = require('underscore.string');
 
 const { platform } = require('process');
-const viewPath = (platform === 'win32') ? 'files/client' : './files/client';
+const viewPath = (platform === 'darwin') ? './files/client' : 'files/client';
 
 var app = express();
 
@@ -30,8 +30,6 @@ var authServer = {
  * Add the client information in here
  */
 var client = {
-	"client_id": "",
-	"client_secret": "",
 	"redirect_uris": ["http://localhost:9000/callback"]
 };
 
