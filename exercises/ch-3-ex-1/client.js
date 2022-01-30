@@ -30,6 +30,8 @@ var authServer = {
  * Add the client information in here
  */
 var client = {
+	"client_id": "",
+	"client_secret": "",
 	"redirect_uris": ["http://localhost:9000/callback"]
 };
 
