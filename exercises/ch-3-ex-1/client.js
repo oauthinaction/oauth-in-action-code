@@ -8,11 +8,14 @@ var randomstring = require("randomstring");
 var __ = require('underscore');
 __.string = require('underscore.string');
 
+const { platform } = require('process');
+const viewPath = (platform === 'win32') ? 'files/client' : './files/client';
+
 var app = express();
 
 app.engine('html', cons.underscore);
 app.set('view engine', 'html');
-app.set('views', 'files/client');
+app.set('views', viewPath);
 
 // authorization server information
 var authServer = {
@@ -48,7 +51,7 @@ app.get('/authorize', function(req, res){
 	/*
 	 * Send the user to the authorization server
 	 */
-	
+
 });
 
 app.get('/callback', function(req, res){
