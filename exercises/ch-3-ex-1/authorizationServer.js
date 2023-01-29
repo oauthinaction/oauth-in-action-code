@@ -47,6 +47,7 @@ app.get('/', function(req, res) {
 });
 
 app.get("/authorize", function(req, res){
+	console.log(req.query)
 	
 	var client = getClient(req.query.client_id);
 	
