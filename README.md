@@ -13,3 +13,24 @@ OAuth 2 in Action teaches you practical use and deployment of this protocol from
 ## About the authors
 
 Justin Richer is a systems architect, software engineer, standards editor, and service designer working as an independent consultant. [Antonio Sanso](http://blog.intothesymmetry.com/) works as Security Software Engineer, he is a vulnerability security researcher and an active open source contributor.
+
+## How to Install and Run the Project
+
+### Clone Repository
+
+Using terminal go to directory of your choosing and execute ```git clone https://github.com/oauthinaction/oauth-in-action-code.git```
+
+### Install Dependencies
+
+Repository contains multiple project, each requiring to install it's dependencies before executing any code. You can go to each directory containing ```package.json``` file and then run ```npm i``` or you can run ```find . -type d -name node_modules -prune -o -name package.json -print -execdir npm i \;``` from the project's root to install all dependencies for all ```package.json``` files in repository at once.
+
+### Run Project
+
+To execute any file written in JavaScript using node simply run ```node [file_name]``` in terminal for eg. ```node client.js```.  
+  
+Some examples require to run multiple files concurrently to work properly, to achive this you can install "concurrently" package globaly using ```npm i -g concurrently```. After that you can run multiple files using ```concurrently "node [file_name1]" "node [file_name2]" "node [file_name3]" ...``` for eg. ```concurrently "node client.js" "node authorizationServer.js" "node protectedResource.js"```. To stop running those files in terminal use ```CTRL + C``` shortcut to abort execution.  
+  
+Generally each running file will be available on your ```localhost```. To access them simple use your web browser and type ```localhost:[port]``` in search bar. To check for correct port refer to each file you want to run, but most of times those ports are: ```9000```, ```9001``` and ```9002``` for eg.
+* client.js - ```localhost:9000```
+* authorizationServer.js - ```localhost:9001```
+* protectedResource.js - ```localhost:9002```
