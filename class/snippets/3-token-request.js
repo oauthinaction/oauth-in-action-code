@@ -114,7 +114,7 @@ app.post("/token", function(req, res){
 				var token_response = { 
 					access_token: access_token, 
 					token_type: 'Bearer', 
-					scope: code.scope ? code.scope.join(' ') : null;
+					scope: code.scope ? code.scope.join(' ') : null
 				};
 
 				res.status(200).json(token_response);
