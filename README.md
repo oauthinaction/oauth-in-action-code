@@ -22,15 +22,17 @@ Using terminal go to directory of your choosing and execute ```git clone https:/
 
 ### Install Dependencies
 
-Repository contains multiple project, each requiring to install it's dependencies before executing any code. You can go to each directory containing ```package.json``` file and then run ```npm i``` or you can run ```find . -type d -name node_modules -prune -o -name package.json -print -execdir npm i \;``` from the project's root to install all dependencies for all ```package.json``` files in repository at once.
+Repository contains multiple project, each requiring to install its dependencies before executing any code. For each exercise, enter the directory and run ```npm install``` to install dependencies before executing the code.
 
 ### Run Project
 
 To execute any file written in JavaScript using node simply run ```node [file_name]``` in terminal for eg. ```node client.js```.  
   
-Some examples require to run multiple files concurrently to work properly, to achive this you can install "concurrently" package globaly using ```npm i -g concurrently```. After that you can run multiple files using ```concurrently "node [file_name1]" "node [file_name2]" "node [file_name3]" ...``` for eg. ```concurrently "node client.js" "node authorizationServer.js" "node protectedResource.js"```. To stop running those files in terminal use ```CTRL + C``` shortcut to abort execution.  
-  
-Generally each running file will be available on your ```localhost```. To access them simple use your web browser and type ```localhost:[port]``` in search bar. To check for correct port refer to each file you want to run, but most of times those ports are: ```9000```, ```9001``` and ```9002``` for eg.
-* client.js - ```localhost:9000```
-* authorizationServer.js - ```localhost:9001```
-* protectedResource.js - ```localhost:9002```
+Some examples require to run multiple files concurrently to work properly (for example, the authorization server, client, and resource server components), and it is recommended that each file be executed in its own separate environment, such as in separate terminal windows.
+
+Each service runs on ```localhost``` and is usually available over HTTP.
+
+The usual ports for items is:
+* client.js - ```http://localhost:9000/```
+* authorizationServer.js - ```http://localhost:9001/```
+* protectedResource.js - ```http://localhost:9002/```
