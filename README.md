@@ -13,3 +13,26 @@ OAuth 2 in Action teaches you practical use and deployment of this protocol from
 ## About the authors
 
 Justin Richer is a systems architect, software engineer, standards editor, and service designer working as an independent consultant. [Antonio Sanso](http://blog.intothesymmetry.com/) works as Security Software Engineer, he is a vulnerability security researcher and an active open source contributor.
+
+## How to Install and Run the Project
+
+### Clone Repository
+
+Using terminal go to directory of your choosing and execute ```git clone https://github.com/oauthinaction/oauth-in-action-code.git```
+
+### Install Dependencies
+
+Repository contains multiple project, each requiring to install its dependencies before executing any code. For each exercise, enter the directory and run ```npm install``` to install dependencies before executing the code.
+
+### Run Project
+
+To execute any file written in JavaScript using node simply run ```node [file_name]``` in terminal for eg. ```node client.js```.  
+  
+Some examples require to run multiple files concurrently to work properly (for example, the authorization server, client, and resource server components), and it is recommended that each file be executed in its own separate environment, such as in separate terminal windows.
+
+Each service runs on ```localhost``` and is usually available over HTTP.
+
+The usual ports for items is:
+* client.js - ```http://localhost:9000/```
+* authorizationServer.js - ```http://localhost:9001/```
+* protectedResource.js - ```http://localhost:9002/```
