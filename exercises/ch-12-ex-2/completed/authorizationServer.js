@@ -401,7 +401,7 @@ app.delete('/register/:clientId', authorizeConfigurationEndpointRequest, functio
 	clients = __.reject(clients, __.matches({client_id: req.client.client_id}));
 
   nosql.remove().make(function(builder) {
-    builder.where('client_id', clientId);
+    builder.where('client_id', req.client.clientId);
     builder.callback(function(err, count) {
       console.log("Removed %s tokens", count);
     });
