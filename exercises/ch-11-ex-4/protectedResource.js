@@ -24,9 +24,9 @@ var resource = {
 	"description": "This data has been protected by OAuth 2.0"
 };
 
-var protectedResources = {
-		"resource_id": "protected-resource-1",
-		"resource_secret": "protected-resource-secret-1"
+var protectedResource = {
+	"resource_id": "protected-resource-1",
+	"resource_secret": "protected-resource-secret-1"
 };
 
 var authServer = {
