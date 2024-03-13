@@ -45,14 +45,26 @@ app.get('/authorize', function(req, res){
 
 	state = randomstring.generate();
 
-	var authorizeUrl = buildUrl(authServer.authorizationEndpoint, {
+	var options = {
 		response_type: 'code',
 		client_id: client.client_id,
 		redirect_uri: client.redirect_uris[0],
 		state: state
-	});
+	}
+	console.log('options: ', options)
+	// options:  {
+	// 	response_type: 'code',
+	// 	client_id: 'oauth-client-1',
+	// 	redirect_uri: 'http://localhost:9000/callback',
+	// 	state: 'i324YlUuW7DAHmhbVD2cSQSxlIgf3iyj'
+	// }
+
+	// authServer.authorizationEndpoint: http://localhost:9001/authorize
+	var authorizeUrl = buildUrl(authServer.authorizationEndpoint, options);
 
 	console.log("redirect", authorizeUrl);
+	// redirect http://localhost:9001/authorize?response_type=code&client_id=oauth-client-1&redirect_uri=http%3A%2F%2Flocalhost%3A9000%2Fcallback&state=i324YlUuW7DAHmhbVD2cSQSxlIgf3iyj
+
 	res.redirect(authorizeUrl);
 });
 
